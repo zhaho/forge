@@ -1,0 +1,31 @@
+<%- include('../partials/header') %>
+  <h1>New deployment</h1>
+  <% if (error) { %>
+    <p style="color: var(--pico-del-color);">
+      <%= error %>
+    </p>
+    <% } %>
+      <form method="POST" action="/deployments">
+        <label for="name">Name
+          <input type="text" id="name" name="name" value="<%= form.name %>" pattern="[a-z][a-z0-9-]{0,11}"
+            maxlength="12" placeholder="e.g. lab" required autofocus>
+        </label>
+        <small>Nodes will be named <code>&lt;name&gt;01</code>, <code>&lt;name&gt;02</code>, ...</small>
+
+        <label for="role">Role
+          <select id="role" name="role" required>
+            <option value="" disabled <%=form.roleKey ? '' : 'selected' %>>Choose a role</option>
+            <% roles.forEach(function (role) { %>
+              <option value="<%= role.key %>" <%=form.roleKey===role.key ? 'selected' : '' %>><%= role.label %>
+              </option>
+              <% }) %>
+          </select>
+        </label>
+
+        <label for="quantity">Quantity
+          <input type="number" id="quantity" name="quantity" value="<%= form.quantity %>" min="1" max="10" required>
+        </label>
+
+        <button type="submit">Deploy</button>
+      </form>
+      <%- include('../partials/footer') %>

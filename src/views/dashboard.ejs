@@ -1,0 +1,56 @@
+<%- include('partials/header') %>
+  <nav>
+    <ul>
+      <li><strong>Forge</strong></li>
+    </ul>
+    <ul>
+      <li>
+        <%= username %>
+      </li>
+      <li>
+        <form method="POST" action="/logout" style="display:inline">
+          <button class="secondary outline" type="submit">Logout</button>
+        </form>
+      </li>
+    </ul>
+  </nav>
+  <h1>Dashboard</h1>
+  <p><a href="/deployments/new" role="button">New deployment</a></p>
+
+  <% if (deployments.length===0) { %>
+    <p>No deployments yet.</p>
+    <% } else { %>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Quantity</th>
+            <th>Status</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% deployments.forEach(function (deployment) { %>
+            <tr>
+              <td><a href="/deployments/<%= deployment.id %>">
+                  <%= deployment.name %>
+                </a></td>
+              <td>
+                <%= deployment.role_label %>
+              </td>
+              <td>
+                <%= deployment.quantity %>
+              </td>
+              <td>
+                <%= deployment.status %>
+              </td>
+              <td>
+                <%= deployment.created_at %>
+              </td>
+            </tr>
+            <% }) %>
+        </tbody>
+      </table>
+      <% } %>
+        <%- include('partials/footer') %>

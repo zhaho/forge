@@ -1,0 +1,25 @@
+<%- include('partials/header') %>
+  <article style="max-width: 28rem; margin: 4rem auto;">
+    <hgroup>
+      <h1>Forge</h1>
+      <p>Create the admin account (one-time setup)</p>
+    </hgroup>
+    <% if (error) { %>
+      <p style="color: var(--pico-del-color);">
+        <%= error %>
+      </p>
+      <% } %>
+        <form method="POST" action="/register">
+          <label for="username">Username
+            <input type="text" id="username" name="username" required autofocus>
+          </label>
+          <label for="password">Password
+            <input type="password" id="password" name="password" required>
+          </label>
+          <label for="confirmPassword">Confirm password
+            <input type="password" id="confirmPassword" name="confirmPassword" required>
+          </label>
+          <button type="submit">Create admin account</button>
+        </form>
+  </article>
+  <%- include('partials/footer') %>

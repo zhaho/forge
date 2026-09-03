@@ -1,0 +1,36 @@
+<%- include('../partials/header') %>
+  <p><a href="/">&larr; Dashboard</a></p>
+  <h1>
+    <%= deployment.name %> <small>(<%= role.label %>)</small>
+  </h1>
+  <p>Status: <strong id="deployment-status">
+      <%= deployment.status %>
+    </strong></p>
+
+  <h2>Nodes</h2>
+  <ul>
+    <% nodes.forEach(function (node) { %>
+      <li>
+        <%= node.name %> &mdash; <%= node.ip || 'pending IP' %> (<%= node.status %>)
+      </li>
+      <% }) %>
+  </ul>
+
+  <h2>Steps</h2>
+  <ol>
+    <% steps.forEach(function (step) { %>
+      <li data-step="<%= step.seq %>">
+        <%= step.name %> &mdash; <span class="status status-<%= step.status %>">
+            <%= step.status %>
+          </span>
+      </li>
+      <% }) %>
+  </ol>
+
+  <h2>Log</h2>
+  <pre id="log"
+    style="max-height: 400px; overflow-y: auto; background: var(--pico-code-background-color); padding: 1rem;"><%= existingLog %></pre>
+
+  <script>window.FORGE_DEPLOYMENT_ID = <%= deployment.id %>;</script>
+  <script src="/public/js/deployment.js"></script>
+  <%- include('../partials/footer') %>

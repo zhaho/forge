@@ -1,0 +1,19 @@
+/* Forge-specific overrides on top of Pico.css's dark theme */
+
+.status {
+  font-family: var(--pico-font-family-monospace);
+  font-size: 0.85em;
+}
+
+.status-success {
+  color: var(--pico-ins-color);
+}
+
+.status-failed,
+.status-interrupted {
+  color: var(--pico-del-color);
+}
+
+.status-running {
+  color: var(--pico-primary);
+}

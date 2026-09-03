@@ -1,0 +1,12 @@
+services:
+  forge:
+    build: .
+    container_name: forge
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ~/.ssh/id_rsa:/home/forge/.ssh/id_rsa:ro
