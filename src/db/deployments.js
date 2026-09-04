@@ -47,6 +47,21 @@ function createSteps(deploymentId) {
   STEP_NAMES.forEach((stepName, idx) => insert.run(deploymentId, idx + 1, stepName));
 }
 
+// Appends an ansible_run + verify pair. Pass a componentId to target just that
+// one component's Ansible role instead of the whole role's component list.
+function appendReinstallSteps(deploymentId, componentId) {
+  const existing = getSteps(deploymentId);
+  const nextSeq = existing.length ? Math.max(...existing.map((s) => s.seq)) + 1 : 1;
+  const params = componentId ? JSON.stringify({ componentId }) : null;
+  db.prepare('INSERT INTO steps (deployment_id, seq, name, params) VALUES (?, ?, ?, ?)').run(
+    deploymentId,
+    nextSeq,
+    'ansible_run',
+    params,
+  );
+  db.prepare('INSERT INTO steps (deployment_id, seq, name) VALUES (?, ?, ?)').run(deploymentId, nextSeq + 1, 'verify');
+}
+
 const DESTROY_STEP_NAMES = ['terraform_destroy', 'mark_destroyed'];
 
 function resetStepsForRetry(deploymentId) {
@@ -65,12 +80,17 @@ function markDestroyRequested(id) {
 }
 
 function createDestroySteps(deploymentId) {
+  appendSteps(deploymentId, DESTROY_STEP_NAMES);
+}
+
+// Appends fresh step rows after whatever already exists (used for destroy and
+// for re-running ansible_run/verify on demand, e.g. after editing a role).
+function appendSteps(deploymentId, stepNames) {
   const existing = getSteps(deploymentId);
   const nextSeq = existing.length ? Math.max(...existing.map((s) => s.seq)) + 1 : 1;
   const insert = db.prepare('INSERT INTO steps (deployment_id, seq, name) VALUES (?, ?, ?)');
-  DESTROY_STEP_NAMES.forEach((stepName, idx) => insert.run(deploymentId, nextSeq + idx, stepName));
+  stepNames.forEach((stepName, idx) => insert.run(deploymentId, nextSeq + idx, stepName));
 }
-
 function getDeployment(id) {
   return db.prepare('SELECT * FROM deployments WHERE id = ?').get(id);
 }
@@ -78,7 +98,9 @@ function getDeployment(id) {
 function listDeployments() {
   return db
     .prepare(
-      `SELECT d.*, r.label AS role_label
+      `SELECT d.*, r.label AS role_label,
+         (SELECT COUNT(*) FROM deployment_nodes n WHERE n.deployment_id = d.id) AS node_count,
+         (SELECT GROUP_CONCAT(n.ip) FROM deployment_nodes n WHERE n.deployment_id = d.id AND n.ip IS NOT NULL) AS node_ips
        FROM deployments d
        JOIN roles r ON r.id = d.role_id
        ORDER BY d.created_at DESC`,
@@ -115,6 +137,10 @@ function updateNode(id, fields) {
 
 function listComponents() {
   return db.prepare('SELECT * FROM components ORDER BY label').all();
+}
+
+function getComponentById(id) {
+  return db.prepare('SELECT * FROM components WHERE id = ?').get(id);
 }
 
 function getComponentsForRole(roleId) {
@@ -157,6 +183,8 @@ module.exports = {
   setWorkdir,
   addNode,
   createSteps,
+  appendSteps,
+  appendReinstallSteps,
   resetStepsForRetry,
   markDestroyRequested,
   createDestroySteps,
@@ -168,6 +196,7 @@ module.exports = {
   updateStep,
   updateNode,
   listComponents,
+  getComponentById,
   getComponentsForRole,
   createRole,
   updateRoleLabel,

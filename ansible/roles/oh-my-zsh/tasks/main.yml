@@ -1,10 +1,12 @@
 ---
 # Vendored from ansible-deployment/roles/ansible-role-oh-my-zsh, adapted to run
-# for the connected host's remote_user instead of a list of local users.
+# for the connected host's deploy user instead of a list of local users.
 - name: "OMZ | establish home directory."
   set_fact:
     omz_user_home_dir: "{{ (ansible_system == 'Darwin') | ternary('Users', 'home') }}"
-    omz_target_user: "{{ ansible_user_id }}"
+    # deploy_user (not ansible_user_id) - the play's global become:true means facts
+    # are gathered as root, so ansible_user_id would resolve to 'root' here.
+    omz_target_user: "{{ deploy_user }}"
 
 - name: "OMZ | ensure zsh is installed."
   package:
@@ -35,6 +37,11 @@
     accept_hostkey: "true"
     version: "master"
   register: "omz_clone"
+
+- name: "OMZ | install Forge custom theme."
+  copy:
+    src: "forge-arrow.zsh-theme"
+    dest: "{{ omz_install_path }}/custom/themes/forge-arrow.zsh-theme"
 
 - name: "OMZ | derive user .zshrc path."
   set_fact:

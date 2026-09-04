@@ -104,15 +104,45 @@ router.post('/deployments/:id/destroy', requireAuth, (req, res) => {
   res.redirect(`/deployments/${deployment.id}`);
 });
 
+router.post('/deployments/:id/reinstall', requireAuth, (req, res) => {
+  const deployment = repo.getDeployment(req.params.id);
+  if (!deployment) return res.status(404).send('Deployment not found');
+  if (['running', 'queued', 'destroyed'].includes(deployment.status)) {
+    return res.status(400).send(`Deployment is currently '${deployment.status}' and cannot be reinstalled right now.`);
+  }
+
+  repo.appendReinstallSteps(deployment.id, null);
+  repo.updateDeploymentStatus(deployment.id, 'queued');
+  queue.add(() => pipeline.runDeployment(deployment.id));
+
+  res.redirect(`/deployments/${deployment.id}`);
+});
+
+router.post('/deployments/:id/reinstall/:componentId', requireAuth, (req, res) => {
+  const deployment = repo.getDeployment(req.params.id);
+  if (!deployment) return res.status(404).send('Deployment not found');
+  if (['running', 'queued', 'destroyed'].includes(deployment.status)) {
+    return res.status(400).send(`Deployment is currently '${deployment.status}' and cannot be reinstalled right now.`);
+  }
+
+  repo.appendReinstallSteps(deployment.id, Number(req.params.componentId));
+  repo.updateDeploymentStatus(deployment.id, 'queued');
+  queue.add(() => pipeline.runDeployment(deployment.id));
+
+  res.redirect(`/deployments/${deployment.id}`);
+});
+
 router.get('/deployments/:id', requireAuth, (req, res) => {
   const deployment = repo.getDeployment(req.params.id);
   if (!deployment) return res.status(404).send('Deployment not found');
 
   const steps = repo.getSteps(deployment.id);
+  const role = repo.getRoleById(deployment.role_id);
 
   res.render('deployments/show', {
     deployment,
-    role: repo.getRoleById(deployment.role_id),
+    role,
+    components: role.playbook_path ? [] : repo.getComponentsForRole(role.id),
     nodes: repo.getNodes(deployment.id),
     steps,
     existingLog: readStepLogs(steps),

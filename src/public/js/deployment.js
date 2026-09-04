@@ -19,7 +19,10 @@
       }
     } else if (msg.type === 'deployment') {
       var deploymentStatusEl = document.getElementById('deployment-status');
-      if (deploymentStatusEl) deploymentStatusEl.textContent = msg.status;
+      if (deploymentStatusEl) {
+        deploymentStatusEl.textContent = msg.status;
+        deploymentStatusEl.className = 'status status-' + msg.status;
+      }
       if (msg.status === 'success' || msg.status === 'failed' || msg.status === 'destroyed') {
         source.close();
         location.reload();

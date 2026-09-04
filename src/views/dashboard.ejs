@@ -33,37 +33,96 @@
   <% if (deployments.length===0) { %>
     <p>No deployments yet.</p>
     <% } else { %>
-      <table>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Role</th>
-            <th>Quantity</th>
-            <th>Status</th>
-            <th>Created</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% deployments.forEach(function (deployment) { %>
-            <tr>
-              <td><a href="/deployments/<%= deployment.id %>">
-                  <%= deployment.name %>
-                </a></td>
-              <td>
-                <%= deployment.role_label %>
-              </td>
-              <td>
-                <%= deployment.quantity %>
-              </td>
-              <td>
-                <%= deployment.status %>
-              </td>
-              <td>
-                <%= deployment.created_at %>
-              </td>
-            </tr>
-            <% }) %>
-        </tbody>
-      </table>
-      <% } %>
-        <%- include('partials/footer') %>
+      <% var active=deployments.filter(function (d) { return d.status !=='destroyed' ; }); %>
+        <% var destroyed=deployments.filter(function (d) { return d.status==='destroyed' ; }); %>
+
+          <% if (active.length===0) { %>
+            <p>No active deployments.</p>
+            <% } else { %>
+              <table class="deployments-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Nodes</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% active.forEach(function (deployment) { %>
+                    <tr>
+                      <td><a href="/deployments/<%= deployment.id %>">
+                          <%= deployment.name %>
+                        </a></td>
+                      <td>
+                        <%= deployment.role_label %>
+                      </td>
+                      <td><span class="status status-<%= deployment.status %>">
+                          <%= deployment.status %>
+                        </span></td>
+                      <td>
+                        <% if (deployment.node_ips) { %>
+                          <%= deployment.node_ips.split(',').join(', ') %>
+                          <% } else { %>
+                            <em><%= deployment.node_count %> pending</em>
+                            <% } %>
+                      </td>
+                      <td>
+                        <%= deployment.created_at %>
+                      </td>
+                      <td class="actions-cell">
+                        <% if (deployment.status===' failed' ) { %>
+                            <form method="POST" action="/deployments/<%= deployment.id %>/retry">
+                              <button type="submit">Retry</button>
+                            </form>
+                            <% } %>
+                              <% if (['success', 'failed' ].includes(deployment.status)) { %>
+                                <form method="POST" action="/deployments/<%= deployment.id %>/destroy"
+                                  onsubmit="return confirm('Destroy all nodes in \'<%= deployment.name %>\'? This cannot be undone.');">
+                                  <button type="submit" class="contrast">Destroy</button>
+                                </form>
+                                <% } %>
+                      </td>
+                    </tr>
+                    <% }) %>
+                </tbody>
+              </table>
+              <% } %>
+
+                <% if (destroyed.length> 0) { %>
+                  <details>
+                    <summary>Destroyed (<%= destroyed.length %>)</summary>
+                    <table class="deployments-table">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Role</th>
+                          <th>Status</th>
+                          <th>Created</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% destroyed.forEach(function (deployment) { %>
+                          <tr class="is-destroyed">
+                            <td><a href="/deployments/<%= deployment.id %>">
+                                <%= deployment.name %>
+                              </a></td>
+                            <td>
+                              <%= deployment.role_label %>
+                            </td>
+                            <td><span class="status status-<%= deployment.status %>">
+                                <%= deployment.status %>
+                              </span></td>
+                            <td>
+                              <%= deployment.created_at %>
+                            </td>
+                          </tr>
+                          <% }) %>
+                      </tbody>
+                    </table>
+                  </details>
+                  <% } %>
+                    <% } %>
+                      <%- include('partials/footer') %>

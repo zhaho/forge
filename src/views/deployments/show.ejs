@@ -11,9 +11,9 @@
   <h1>
     <%= deployment.name %> <small>(<%= role.label %>)</small>
   </h1>
-  <p>Status: <strong id="deployment-status">
+  <p>Status: <span id="deployment-status" class="status status-<%= deployment.status %>">
       <%= deployment.status %>
-    </strong></p>
+    </span></p>
 
   <% if (deployment.status==='failed' ) { %>
     <form method="POST" action="/deployments/<%= deployment.id %>/retry" style="display:inline-block">
@@ -27,32 +27,86 @@
         </form>
         <% } %>
 
-          <h2>Nodes</h2>
-          <ul>
-            <% nodes.forEach(function (node) { %>
-              <li>
-                <%= node.name %>
-                  <%= node.sub_role ? ' (' + node.sub_role + ')' : '' %> &mdash;
-                    <%= node.ip || 'pending IP' %> (<%= node.status %>)
-              </li>
-              <% }) %>
-          </ul>
+          <h2>Components</h2>
+          <% if (role.playbook_path) { %>
+            <p><em>This role uses a dedicated playbook (<%= role.playbook_path %>), not the component checklist.</em>
+            </p>
+            <% } else if (components.length===0) { %>
+              <p><em>No components selected for this role yet.</em> <a href="/roles/<%= role.id %>/edit">Edit role</a>
+              </p>
+              <% } else { %>
+                <ul>
+                  <% components.forEach(function (component) { %>
+                    <li>
+                      <%= component.label %>
+                        <% if (component.description) { %> &mdash; <small>
+                            <%= component.description %>
+                          </small>
+                          <% } %>
+                            <% if (['success', 'failed' ].includes(deployment.status)) { %>
+                              <form method="POST"
+                                action="/deployments/<%= deployment.id %>/reinstall/<%= component.id %>"
+                                style="display:inline-block"
+                                onsubmit="return confirm('Reinstall just \'<%= component.label %>\' on \'<%= deployment.name %>\'?');">
+                                <button type="submit" class="outline secondary"
+                                  style="padding: 0.1rem 0.5rem; font-size: 0.8em;">Reinstall</button>
+                              </form>
+                              <% } %>
+                    </li>
+                    <% }) %>
+                </ul>
+                <p><a href="/roles/<%= role.id %>/edit">Edit which components this role installs</a></p>
+                <% } %>
 
-          <h2>Steps</h2>
-          <ol>
-            <% steps.forEach(function (step) { %>
-              <li data-step="<%= step.seq %>">
-                <%= step.name %> &mdash; <span class="status status-<%= step.status %>">
-                    <%= step.status %>
-                  </span>
-              </li>
-              <% }) %>
-          </ol>
+                  <% if (['success', 'failed' ].includes(deployment.status)) { %>
+                    <form method="POST" action="/deployments/<%= deployment.id %>/reinstall"
+                      style="display:inline-block"
+                      onsubmit="return confirm('Re-run Ansible against \'<%= deployment.name %>\' with the role\'s current components?');">
+                      <button type="submit">Reinstall components</button>
+                    </form>
+                    <% } %>
 
-          <h2>Log</h2>
-          <pre id="log"
-            style="max-height: 400px; overflow-y: auto; background: var(--pico-code-background-color); padding: 1rem;"><%= existingLog %></pre>
+                      <h2>Nodes</h2>
+                      <ul>
+                        <% nodes.forEach(function (node) { %>
+                          <li>
+                            <%= node.name %>
+                              <%= node.sub_role ? ' (' + node.sub_role + ')' : '' %> &mdash;
+                                <%= node.ip || 'pending IP' %> (<%= node.status %>)
+                          </li>
+                          <% }) %>
+                      </ul>
 
-          <script>window.FORGE_DEPLOYMENT_ID = <%= deployment.id %>;</script>
-          <script src="/public/js/deployment.js"></script>
-          <%- include('../partials/footer') %>
+                      <h2>Steps</h2>
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>Step</th>
+                            <th>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <% steps.forEach(function (step) { %>
+                            <tr data-step="<%= step.seq %>">
+                              <td>
+                                <%= step.seq %>
+                              </td>
+                              <td>
+                                <%= step.name.replace(/_/g, ' ' ) %>
+                              </td>
+                              <td><span class="status status-<%= step.status %>">
+                                  <%= step.status %>
+                                </span></td>
+                            </tr>
+                            <% }) %>
+                        </tbody>
+                      </table>
+
+                      <h2>Log</h2>
+                      <pre id="log"
+                        style="max-height: 400px; overflow-y: auto; background: var(--pico-code-background-color); padding: 1rem;"><%= existingLog %></pre>
+
+                      <script>window.FORGE_DEPLOYMENT_ID = <%= deployment.id %>;</script>
+                      <script src="/public/js/deployment.js"></script>
+                      <%- include('../partials/footer') %>

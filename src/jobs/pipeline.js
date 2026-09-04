@@ -154,6 +154,24 @@ function sshArgs(node) {
   ];
 }
 
+async function forgetStaleHostKey(deployment, node, logPath, stepName) {
+  if (!fs.existsSync(config.ssh.knownHostsPath)) fs.writeFileSync(config.ssh.knownHostsPath, '');
+  try {
+    // Home-lab IPs get reused across VMs; a stale known_hosts entry from a
+    // previous VM at the same IP would otherwise hard-fail host key checking.
+    await runCommand(
+      'ssh-keygen',
+      ['-R', node.ip, '-f', config.ssh.knownHostsPath],
+      deployment.workdir_path,
+      {},
+      logPath,
+      (l) => emit(deployment.id, { type: 'log', step: stepName, line: l }),
+    );
+  } catch (err) {
+    // No existing entry to remove - fine, nothing to do.
+  }
+}
+
 async function runWaitCloudInit(deployment, step, logPath) {
   fs.mkdirSync(path.dirname(config.ssh.knownHostsPath), { recursive: true });
   const nodes = repo.getNodes(deployment.id);
@@ -162,6 +180,8 @@ async function runWaitCloudInit(deployment, step, logPath) {
     const line = `Waiting for SSH + cloud-init on ${node.name} (${node.ip})...`;
     appendLog(logPath, line);
     emit(deployment.id, { type: 'log', step: step.name, line });
+
+    await forgetStaleHostKey(deployment, node, logPath, step.name);
 
     let lastErr;
     for (let attempt = 1; attempt <= MAX_SSH_ATTEMPTS; attempt += 1) {
@@ -193,7 +213,24 @@ async function runAnsible(deployment, step, logPath) {
   const nodes = repo.getNodes(deployment.id);
   const role = repo.getRoleById(deployment.role_id);
   const inventoryPath = inventory.generateInventory(deployment, nodes, role);
-  const playbookPath = playbookModule.resolvePlaybook(deployment, role);
+
+  let componentId = null;
+  if (step.params) {
+    try {
+      componentId = JSON.parse(step.params).componentId || null;
+    } catch (err) {
+      // Malformed/legacy params - fall back to the role's full component list.
+    }
+  }
+
+  if (componentId) {
+    const component = repo.getComponentById(componentId);
+    const line = `Reinstalling just the '${component ? component.label : componentId}' component`;
+    appendLog(logPath, line);
+    emit(deployment.id, { type: 'log', step: step.name, line });
+  }
+
+  const playbookPath = playbookModule.resolvePlaybook(deployment, role, componentId);
 
   await runCommand(
     'ansible-playbook',

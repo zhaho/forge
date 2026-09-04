@@ -22,6 +22,7 @@ function generateInventory(deployment, nodes, role) {
   lines.push('');
   lines.push('[all:vars]');
   lines.push(`ansible_user=${config.ssh.user}`);
+  lines.push(`deploy_user=${config.ssh.user}`);
   lines.push(`ansible_ssh_private_key_file=${config.ssh.privateKeyPath}`);
   lines.push(
     `ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=${config.ssh.knownHostsPath}'`,

@@ -14,7 +14,7 @@ omz_zshrc_create: true
 omz_zshrc_template: "templates/zshrc.zsh-template.j2"
 omz_zshrc_backup: true
 omz_zshrc_force: true
-omz_zsh_theme: "obraun"
+omz_zsh_theme: "forge-arrow"
 omz_case_sensitive: false
 omz_hyphen_insensitive: false
 omz_disable_auto_update: false

@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS steps (
   log_path      TEXT,
   started_at    TEXT,
   finished_at   TEXT,
+  params        TEXT,
   UNIQUE(deployment_id, seq)
 );
 

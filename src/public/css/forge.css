@@ -1,8 +1,15 @@
 /* Forge-specific overrides on top of Pico.css's dark theme */
 
 .status {
+  display: inline-block;
   font-family: var(--pico-font-family-monospace);
-  font-size: 0.85em;
+  font-size: 0.78em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.15rem 0.6rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
 }
 
 .status-success {
@@ -14,8 +21,33 @@
   color: var(--pico-del-color);
 }
 
-.status-running {
+.status-running,
+.status-queued {
   color: var(--pico-primary);
+}
+
+.status-destroyed {
+  color: var(--pico-muted-color);
+}
+
+.deployments-table tr.is-destroyed {
+  opacity: 0.6;
+}
+
+.actions-cell {
+  display: flex;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.actions-cell form {
+  margin: 0;
+}
+
+.actions-cell button {
+  margin: 0;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.85em;
 }
 
 .brand {
