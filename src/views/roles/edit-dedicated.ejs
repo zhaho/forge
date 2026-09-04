@@ -1,0 +1,16 @@
+<%- include('../partials/header') %>
+  <nav>
+    <ul>
+      <li><%- include('../partials/brand') %></li>
+    </ul>
+    <ul>
+      <li><a href="/roles">&larr; Roles</a></li>
+    </ul>
+  </nav>
+  <h1>Edit role: <%= role.label %>
+  </h1>
+  <p>
+    This role uses a dedicated playbook (<code><%= role.playbook_path %></code>) with its own logic
+    (e.g. control-plane/worker assignment) instead of the component checklist, so it can't be edited here.
+  </p>
+  <%- include('../partials/footer') %>

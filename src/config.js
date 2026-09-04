@@ -1,6 +1,6 @@
 const path = require('path');
 
-const dataDir = process.env.DATA_DIR || path.join(__dirname, '../data');
+const dataDir = path.resolve(process.env.DATA_DIR || path.join(__dirname, '../data'));
 
 module.exports = {
   port: process.env.PORT || 3000,
@@ -27,5 +27,14 @@ module.exports = {
     subnetId: process.env.IPAM_SUBNET_ID || '7',
   },
 
+  ssh: {
+    user: process.env.HOST_USER || 'zhaho',
+    privateKeyPath: process.env.SSH_PRIVATE_KEY_PATH || '/home/forge/.ssh/id_rsa',
+    knownHostsPath: path.join(dataDir, 'ssh_known_hosts'),
+  },
+
   terraformModulePath: process.env.TF_MODULE_PATH || path.join(__dirname, '../terraform/modules/proxmox-vm'),
+  ansibleRolesPath: process.env.ANSIBLE_ROLES_PATH || path.join(__dirname, '../ansible/roles'),
+  ansiblePlaybooksDir: process.env.ANSIBLE_PLAYBOOKS_DIR || path.join(__dirname, '../ansible/playbooks'),
+  ansibleConfigPath: process.env.ANSIBLE_CONFIG || path.join(__dirname, '../ansible/ansible.cfg'),
 };

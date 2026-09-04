@@ -5,7 +5,16 @@ const repo = require('../db/deployments');
 const ipam = require('../ipam/client');
 const generator = require('../terraform/generator');
 const { runCommand } = require('../terraform/executor');
+const inventory = require('../ansible/inventory');
+const playbookModule = require('../ansible/playbook');
 const { getEmitter } = require('./events');
+
+const MAX_SSH_ATTEMPTS = 30;
+const SSH_RETRY_DELAY_MS = 10000;
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 function emit(deploymentId, event) {
   getEmitter(deploymentId).emit('message', event);
@@ -128,17 +137,104 @@ async function runMarkDestroyed(deployment, step, logPath) {
   emit(deployment.id, { type: 'log', step: step.name, line });
 }
 
+function sshArgs(node) {
+  return [
+    '-o',
+    'BatchMode=yes',
+    '-o',
+    'ConnectTimeout=8',
+    '-o',
+    'StrictHostKeyChecking=accept-new',
+    '-o',
+    `UserKnownHostsFile=${config.ssh.knownHostsPath}`,
+    '-i',
+    config.ssh.privateKeyPath,
+    `${config.ssh.user}@${node.ip}`,
+    'cloud-init status --wait',
+  ];
+}
+
+async function runWaitCloudInit(deployment, step, logPath) {
+  fs.mkdirSync(path.dirname(config.ssh.knownHostsPath), { recursive: true });
+  const nodes = repo.getNodes(deployment.id);
+
+  for (const node of nodes) {
+    const line = `Waiting for SSH + cloud-init on ${node.name} (${node.ip})...`;
+    appendLog(logPath, line);
+    emit(deployment.id, { type: 'log', step: step.name, line });
+
+    let lastErr;
+    for (let attempt = 1; attempt <= MAX_SSH_ATTEMPTS; attempt += 1) {
+      try {
+        await runCommand('ssh', sshArgs(node), deployment.workdir_path, {}, logPath, (l) =>
+          emit(deployment.id, { type: 'log', step: step.name, line: l }),
+        );
+        lastErr = null;
+        break;
+      } catch (err) {
+        lastErr = err;
+        if (attempt < MAX_SSH_ATTEMPTS) await sleep(SSH_RETRY_DELAY_MS);
+      }
+    }
+    if (lastErr) throw new Error(`${node.name} did not become reachable over SSH: ${lastErr.message}`);
+  }
+}
+
+function ansibleEnv() {
+  return {
+    ANSIBLE_CONFIG: config.ansibleConfigPath,
+    ANSIBLE_ROLES_PATH: config.ansibleRolesPath,
+    ANSIBLE_NOCOLOR: '1',
+    PYTHONUNBUFFERED: '1',
+  };
+}
+
+async function runAnsible(deployment, step, logPath) {
+  const nodes = repo.getNodes(deployment.id);
+  const role = repo.getRoleById(deployment.role_id);
+  const inventoryPath = inventory.generateInventory(deployment, nodes, role);
+  const playbookPath = playbookModule.resolvePlaybook(deployment, role);
+
+  await runCommand(
+    'ansible-playbook',
+    ['-i', inventoryPath, playbookPath],
+    deployment.workdir_path,
+    ansibleEnv(),
+    logPath,
+    (line) => emit(deployment.id, { type: 'log', step: step.name, line }),
+  );
+}
+
+async function runVerify(deployment, step, logPath) {
+  const inventoryPath = path.join(deployment.workdir_path, 'inventory.ini');
+
+  await runCommand(
+    'ansible',
+    ['all', '-i', inventoryPath, '-m', 'ping'],
+    deployment.workdir_path,
+    ansibleEnv(),
+    logPath,
+    (line) => emit(deployment.id, { type: 'log', step: step.name, line }),
+  );
+}
+
 const STEP_RUNNERS = {
   allocate_ips: runAllocateIps,
   generate_terraform: runGenerateTerraform,
   terraform_init: runTerraformInit,
   terraform_apply: runTerraformApply,
+  wait_cloud_init: runWaitCloudInit,
+  ansible_run: runAnsible,
+  verify: runVerify,
   terraform_destroy: runTerraformDestroy,
   mark_destroyed: runMarkDestroyed,
 };
 
 async function runDeployment(deploymentId) {
   const deployment = repo.getDeployment(deploymentId);
+  // Older deployments may have a relative workdir_path stored (pre path-resolve fix);
+  // normalize it here so every step below gets a consistent absolute path.
+  deployment.workdir_path = path.resolve(deployment.workdir_path);
   repo.updateDeploymentStatus(deploymentId, 'running');
   emit(deploymentId, { type: 'deployment', status: 'running' });
 
@@ -164,4 +260,4 @@ async function runDeployment(deploymentId) {
   emit(deploymentId, { type: 'deployment', status: finalStatus });
 }
 
-module.exports = { runDeployment };
+module.exports = { runDeployment, stepLogPath };

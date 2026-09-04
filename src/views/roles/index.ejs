@@ -1,0 +1,45 @@
+<%- include('../partials/header') %>
+  <nav>
+    <ul>
+      <li><%- include('../partials/brand') %></li>
+    </ul>
+    <ul>
+      <li><a href="/">&larr; Dashboard</a></li>
+    </ul>
+  </nav>
+  <h1>Roles</h1>
+  <p><a href="/roles/new" role="button">New role</a></p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Label</th>
+        <th>Key</th>
+        <th>Components</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% roles.forEach(function (role) { %>
+        <tr>
+          <td>
+            <%= role.label %>
+          </td>
+          <td><code><%= role.key %></code></td>
+          <td>
+            <% if (role.isComponentBased) { %>
+              <% if (role.components.length===0) { %>
+                <em>none selected</em>
+                <% } else { %>
+                  <%= role.components.map(function (c) { return c.label; }).join(', ') %>
+              <% } %>
+            <% } else { %>
+              <em>dedicated playbook (<%= role.playbook_path %>)</em>
+            <% } %>
+          </td>
+          <td><a href="/roles/<%= role.id %>/edit">Edit</a></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<%- include(' ../partials/footer') %>

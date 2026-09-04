@@ -25,34 +25,41 @@ to be answered before/while building later phases.
 | Packaging | Docker + docker-compose, included in v1 (not deferred) — makes Forge easy to redeploy elsewhere later |
 | Container networking | Bridge network + mapped port for the GUI (no host networking / no Docker socket needed) |
 | Docker availability | Already installed on the target ansible server |
+| Role system | Roles are component-based and GUI-editable: a role = a checked set of reusable Ansible-role "components" (e.g. oh-my-zsh, btop, telegraf), editable/creatable from a `/roles` admin page — not a fixed static playbook per role |
+| k3s-cluster | Stays a dedicated hardcoded playbook (control-plane/worker join logic) rather than component-based, since it doesn't fit the flat checklist model |
+| k3s install method | Plain official install script (`curl -sfL https://get.k3s.io \| sh -`), latest stable, no version pin |
+| SSH host key checking | `accept-new` for both raw SSH (cloud-init wait) and Ansible (`host_key_checking = False` + `StrictHostKeyChecking=accept-new` in ssh args, known_hosts file kept on the persistent data volume) |
+| `lab` / `mgmt` playbook content | Start with just the `oh-my-zsh` component; expand later via the Roles GUI as new components are added |
+
+## Superseded
+
+- Static one-playbook-per-role design in the original
+  [roles doc](./04-roles-and-playbooks.md) is replaced by the component-based
+  system above (2026-09-04).
 
 ## Open questions (need answers before/while implementing)
 
 These didn't block the plan itself but will need answers before the
 relevant phase starts:
 
-1. **`lab.yml` / `mgmt.yml` content** — beyond oh-my-zsh, what should the
-   `lab` and `mgmt` playbooks actually configure? (packages, monitoring
-   agent, users, etc.)
-2. **k3s version/install method** — plain `get.k3s.io` install script, a
-   specific k3s version pin, or an existing Ansible k3s role/collection?
-3. **Job queue concurrency limit** — how many deployments in parallel is
+1. **Job queue concurrency limit** — how many deployments in parallel is
    reasonable given your Proxmox host's actual capacity? (a number, or
-   "unlimited")
-4. **Terraform plan step** — should the pipeline show a `terraform_plan`
+   "unlimited") — currently defaults to 3, tunable via
+   `MAX_CONCURRENT_DEPLOYMENTS`.
+2. **Terraform plan step** — should the pipeline show a `terraform_plan`
    step for review before apply, or go straight to apply (current
-   scripted flow auto-approves)?
-5. **Log retention** — keep logs forever, or prune after N days /
+   scripted flow auto-approves)? — currently goes straight to apply.
+3. **Log retention** — keep logs forever, or prune after N days /
    N deployments?
-6. **phpIPAM race conditions** — `create-environment.sh` picks a free IP
-   at generation time; if two deployments are created back-to-back before
-   Terraform actually registers the IP, they could pick the same free IP.
-   Do we need an explicit "reserve" step in phpIPAM, or is this an
-   acceptable home-lab risk to defer?
-7. **Module sync strategy** — how should the vendored copy of
+4. **phpIPAM race conditions** — mitigated: Forge now reserves each IP in
+   phpIPAM immediately after picking it (with a retry loop), instead of
+   just asking `first_free` for every node up front. A true race between
+   two *simultaneous* deployments is still technically possible but far
+   less likely.
+5. **Module sync strategy** — how should the vendored copy of
    `proxmox-vm` in `forge` stay in sync if it's updated in
    `terraform-deployment`? (manual copy, a small sync script, or a git
    subtree/submodule)
-8. **Proxmox node selection** — v1 assumes a single `target_node`
+6. **Proxmox node selection** — v1 assumes a single `target_node`
    (`proxmox`); do you have more than one Proxmox node/cluster member to
    pick from in the deployment form?

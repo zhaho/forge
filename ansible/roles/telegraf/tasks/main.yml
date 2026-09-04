@@ -1,0 +1,20 @@
+---
+- name: "telegraf | gather package facts"
+  package_facts:
+    manager: auto
+
+- name: "telegraf | install telegraf"
+  ansible.builtin.script: install_telegraf.sh
+  when: "'telegraf' not in ansible_facts.packages"
+
+- name: "telegraf | deploy config"
+  ansible.builtin.copy:
+    src: telegraf.conf
+    dest: /etc/telegraf/telegraf.conf
+  notify: restart telegraf
+
+- name: "telegraf | start and enable service"
+  ansible.builtin.service:
+    name: telegraf
+    state: started
+    enabled: true

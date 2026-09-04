@@ -1,34 +1,48 @@
 # Roles & playbooks
 
-## v1 role catalog
+> Updated 2026-09-04: roles are now **component-based and GUI-editable**
+> (see below), not one fixed static playbook per role. This supersedes the
+> original "one playbook per role" design.
 
-| Role key | Label (dropdown) | Sub-roles? | Playbook (in `ansible-deployment`) |
-|---|---|---|---|
-| `lab` | Lab server | No | `playbooks/lab.yml` |
-| `mgmt` | Management | No | `playbooks/mgmt.yml` |
-| `k3s-cluster` | K3s cluster | Yes (`control-plane` / `worker`) | `playbooks/k3s-cluster.yml` |
+## Role model
 
-This list is seeded into the `roles` table on first boot. Adding a new role
-later = one new row + one new playbook, no code change required (the
-dropdown reads from the `roles` table).
+- A **component** is one reusable Ansible role living in
+  `forge/ansible/roles/<name>/` (e.g. `oh-my-zsh`, `btop`, `telegraf`),
+  seeded in the `components` table.
+- A **role** (`lab`, `mgmt`, or any custom role created via the GUI) is a
+  checked set of components, editable at `/roles` — no code change or
+  redeploy needed to add/remove a component from a role.
+- When a deployment's `ansible_run` step runs, Forge generates a
+  throwaway playbook in the deployment's workdir:
+  ```yaml
+  - hosts: all
+    become: true
+    roles:
+      - oh-my-zsh
+      - btop
+  ```
+  listing exactly the components currently checked for that role.
+- **`k3s-cluster`** is the one exception: it has `supports_sub_roles = 1`
+  and a non-empty `playbook_path` (`k3s-cluster.yml`), so Forge uses the
+  dedicated playbook in `forge/ansible/playbooks/` instead of the
+  component checklist — the control-plane/worker join logic doesn't fit a
+  flat per-host role list.
+- Seeded v1 catalog: `lab` and `mgmt` both start with just the
+  `oh-my-zsh` component checked; `k3s-cluster` as above. Add more
+  components (new role directories + a `components` row) and check them
+  into a role any time via the GUI.
 
-## Playbook design
+## k3s-cluster playbook design
 
-Currently `ansible-deployment` only has `zsh.yml` (oh-my-zsh role). As part
-of Forge, we design one playbook per role:
-
-- **`lab.yml`** — baseline lab server config: the existing `oh-my-zsh` role
-  + whatever else a generic lab box needs (updates, common packages,
-  monitoring agent, etc. — TBD, see [open questions](./06-decisions.md)).
-- **`mgmt.yml`** — management-node specific config (TBD which tools).
-- **`k3s-cluster.yml`** — a single playbook with host-group-based logic:
-  - `[k3s_control_plane]` group → installs k3s server (`curl -sfL
-    https://get.k3s.io | sh -`).
-  - `[k3s_workers]` group → joins the cluster using the control-plane's
-    node token (fetched via Ansible fact/`fetch` from the control-plane
-    host, or a small `delegate_to` step).
-  - Groups come from the inventory Forge generates per deployment (see
-    below) — not from static `ansible-deployment` inventory files.
+`forge/ansible/playbooks/k3s-cluster.yml`:
+- `[k3s_control_plane]` group → installs k3s server (`curl -sfL
+  https://get.k3s.io | sh -`), reads the generated node token.
+- `[k3s_workers]` group → joins the cluster using the control-plane's
+  token/IP via Ansible's `hostvars`/`groups` lookups (no manual
+  `delegate_to`/`fetch` needed since both plays run in the same
+  playbook run).
+- Groups come from the inventory Forge generates per deployment (see
+  below).
 
 ## Inventory generation
 
@@ -45,18 +59,13 @@ k3s03 ansible_host=10.4.5.42
 
 [all:vars]
 ansible_user=zhaho
-ansible_ssh_private_key_file=~/.ssh/id_rsa
+ansible_ssh_private_key_file=/home/forge/.ssh/id_rsa
+ansible_ssh_common_args='-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=/app/data/ssh_known_hosts'
 ```
 
-For simple roles (`lab`, `mgmt`) there's a single group named after the
-role, containing all requested nodes:
-
-```ini
-[lab]
-lab01 ansible_host=10.4.5.43
-lab02 ansible_host=10.4.5.44
-lab03 ansible_host=10.4.5.45
-```
+For component-based roles (`lab`, `mgmt`, custom roles) there's a single
+`[all]` group containing every requested node — the generated playbook
+targets `hosts: all`, so no group name matching the role is needed.
 
 ## Sub-role assignment (multi-node groups)
 

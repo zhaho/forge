@@ -1,0 +1,42 @@
+<%- include('../partials/header') %>
+  <nav>
+    <ul>
+      <li><%- include('../partials/brand') %></li>
+    </ul>
+    <ul>
+      <li><a href="/roles">&larr; Roles</a></li>
+    </ul>
+  </nav>
+  <h1>New role</h1>
+  <% if (error) { %>
+    <p style="color: var(--pico-del-color);">
+      <%= error %>
+    </p>
+    <% } %>
+      <form method="POST" action="/roles">
+        <label for="key">Key
+          <input type="text" id="key" name="key" value="<%= form.key %>" pattern="[a-z][a-z0-9-]{1,19}" maxlength="20"
+            placeholder="e.g. dev-box" required autofocus>
+        </label>
+        <small>Used internally and as the dropdown value; can't be changed later.</small>
+
+        <label for="label">Label
+          <input type="text" id="label" name="label" value="<%= form.label %>" placeholder="e.g. Dev Box" required>
+        </label>
+
+        <fieldset>
+          <legend>Components</legend>
+          <% components.forEach(function (component) { %>
+            <label>
+              <input type="checkbox" name="componentIds" value="<%= component.id %>"
+                <%=form.componentIds.includes(component.id) ? 'checked' : '' %>>
+              <%= component.label %>
+                <% if (component.description) { %><small> &mdash; <%= component.description %></small>
+                  <% } %>
+            </label>
+            <% }) %>
+        </fieldset>
+
+        <button type="submit">Create role</button>
+      </form>
+      <%- include('../partials/footer') %>

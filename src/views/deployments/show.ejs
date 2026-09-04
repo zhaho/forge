@@ -4,6 +4,7 @@
       <li><%- include('../partials/brand') %></li>
     </ul>
     <ul>
+      <li><a href="/roles">Roles</a></li>
       <li><a href="/">&larr; Dashboard</a></li>
     </ul>
   </nav>
@@ -14,37 +15,44 @@
       <%= deployment.status %>
     </strong></p>
 
-  <% if (['success', 'failed' ].includes(deployment.status)) { %>
-    <form method="POST" action="/deployments/<%= deployment.id %>/destroy"
-      onsubmit="return confirm('Destroy all nodes in \'<%= deployment.name %>\'? This cannot be undone.');">
-      <button type="submit" class="contrast">Destroy</button>
+  <% if (deployment.status==='failed' ) { %>
+    <form method="POST" action="/deployments/<%= deployment.id %>/retry" style="display:inline-block">
+      <button type="submit">Retry</button>
     </form>
     <% } %>
+      <% if (['success', 'failed' ].includes(deployment.status)) { %>
+        <form method="POST" action="/deployments/<%= deployment.id %>/destroy" style="display:inline-block"
+          onsubmit="return confirm('Destroy all nodes in \'<%= deployment.name %>\'? This cannot be undone.');">
+          <button type="submit" class="contrast">Destroy</button>
+        </form>
+        <% } %>
 
-      <h2>Nodes</h2>
-      <ul>
-        <% nodes.forEach(function (node) { %>
-          <li>
-            <%= node.name %> &mdash; <%= node.ip || 'pending IP' %> (<%= node.status %>)
-          </li>
-          <% }) %>
-      </ul>
+          <h2>Nodes</h2>
+          <ul>
+            <% nodes.forEach(function (node) { %>
+              <li>
+                <%= node.name %>
+                  <%= node.sub_role ? ' (' + node.sub_role + ')' : '' %> &mdash;
+                    <%= node.ip || 'pending IP' %> (<%= node.status %>)
+              </li>
+              <% }) %>
+          </ul>
 
-      <h2>Steps</h2>
-      <ol>
-        <% steps.forEach(function (step) { %>
-          <li data-step="<%= step.seq %>">
-            <%= step.name %> &mdash; <span class="status status-<%= step.status %>">
-                <%= step.status %>
-              </span>
-          </li>
-          <% }) %>
-      </ol>
+          <h2>Steps</h2>
+          <ol>
+            <% steps.forEach(function (step) { %>
+              <li data-step="<%= step.seq %>">
+                <%= step.name %> &mdash; <span class="status status-<%= step.status %>">
+                    <%= step.status %>
+                  </span>
+              </li>
+              <% }) %>
+          </ol>
 
-      <h2>Log</h2>
-      <pre id="log"
-        style="max-height: 400px; overflow-y: auto; background: var(--pico-code-background-color); padding: 1rem;"><%= existingLog %></pre>
+          <h2>Log</h2>
+          <pre id="log"
+            style="max-height: 400px; overflow-y: auto; background: var(--pico-code-background-color); padding: 1rem;"><%= existingLog %></pre>
 
-      <script>window.FORGE_DEPLOYMENT_ID = <%= deployment.id %>;</script>
-      <script src="/public/js/deployment.js"></script>
-      <%- include('../partials/footer') %>
+          <script>window.FORGE_DEPLOYMENT_ID = <%= deployment.id %>;</script>
+          <script src="/public/js/deployment.js"></script>
+          <%- include('../partials/footer') %>

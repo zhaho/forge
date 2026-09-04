@@ -1,0 +1,5 @@
+---
+- name: "btop | install btop"
+  package:
+    name: btop
+    state: present

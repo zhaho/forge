@@ -9,4 +9,4 @@ services:
       - .env
     volumes:
       - ./data:/app/data
-      - ~/.ssh/id_rsa:/home/forge/.ssh/id_rsa:ro
+      - ~/.ssh/id_rsa:/run/secrets/id_rsa:ro

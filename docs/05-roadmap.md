@@ -31,13 +31,26 @@ Phased so each phase leaves you with something usable/testable.
 - No Ansible yet, no destroy yet, no retry yet — goal is "I can create one
   lab VM from the GUI and watch it happen live."
 
-## Phase 3 — Ansible push + verify
+## Phase 3 — Ansible push + verify ✅ done (2026-09-04)
 
-- `wait_cloud_init`, `ansible_run`, `verify` steps.
-- Author the three v1 playbooks (`lab.yml`, `mgmt.yml`,
-  `k3s-cluster.yml`) in `ansible-deployment`.
-- Goal: "A requested VM is fully configured with its role, automatically,
-  end to end."
+- `wait_cloud_init`, `ansible_run`, `verify` steps implemented.
+- Roles turned out to need to be **component-based and GUI-editable**
+  rather than one static playbook per role — see
+  [04-roles-and-playbooks.md](./04-roles-and-playbooks.md) and the
+  "Superseded" note in [06-decisions.md](./06-decisions.md). Built a
+  `/roles` admin page (create/edit roles, check components on/off) plus
+  three initial vendored components in `forge/ansible/roles/`:
+  `oh-my-zsh` (copied from `ansible-deployment`), `btop`, `telegraf`
+  (adapted from `ansible-telegraf-deploy`, minus the Prometheus
+  registration play — not built yet).
+- `k3s-cluster` kept as a dedicated playbook
+  (`forge/ansible/playbooks/k3s-cluster.yml`) with control-plane/worker
+  join logic; node 1 in a k3s-cluster deployment is now auto-assigned
+  `control-plane`, the rest `worker`.
+- SSH host key handling: `accept-new` for both the raw SSH cloud-init
+  wait and Ansible (`known_hosts` kept on the persistent data volume).
+- Goal met: "A requested VM is fully configured with its role,
+  automatically, end to end."
 
 ## Phase 4 — Multi-node groups
 

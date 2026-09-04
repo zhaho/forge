@@ -1,0 +1,21 @@
+# Managed by Ansible (Forge). This file may be overwritten when playbooks are run!
+
+export ZSH=/{{ omz_user_home_dir }}/{{ omz_target_user }}/{{ omz_install_directory }}
+
+ZSH_THEME="{{ omz_zsh_theme }}"
+
+CASE_SENSITIVE="{{ omz_case_sensitive }}"
+HYPHEN_INSENSITIVE="{{ omz_hyphen_insensitive }}"
+DISABLE_AUTO_UPDATE="{{ omz_disable_auto_update }}"
+export UPDATE_ZSH_DAYS={{ omz_update_zsh_days }}
+DISABLE_LS_COLORS="{{ omz_disable_ls_colors }}"
+DISABLE_AUTO_TITLE="{{ omz_disable_auto_title }}"
+ENABLE_CORRECTION="{{ omz_enable_correction }}"
+COMPLETION_WAITING_DOTS="{{ omz_completion_waiting_dots }}"
+DISABLE_UNTRACKED_FILES_DIRTY="{{ omz_disable_untracked_files_dirty }}"
+HIST_STAMPS="{{ omz_hist_stamps }}"
+ZSH_CUSTOM={{ omz_zsh_custom }}
+
+plugins=({{ omz_plugins | join(" ") }})
+
+source $ZSH/oh-my-zsh.sh

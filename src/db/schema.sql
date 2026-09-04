@@ -51,7 +51,38 @@ CREATE TABLE IF NOT EXISTS steps (
   UNIQUE(deployment_id, seq)
 );
 
+-- A component is a single reusable Ansible role (e.g. oh-my-zsh, btop, telegraf).
+CREATE TABLE IF NOT EXISTS components (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  key          TEXT NOT NULL UNIQUE,
+  label        TEXT NOT NULL,
+  description  TEXT,
+  ansible_role TEXT NOT NULL
+);
+
+-- A role (lab, mgmt, custom...) is composed of a checked set of components.
+-- Roles with a non-empty playbook_path (e.g. k3s-cluster) use a dedicated
+-- playbook instead and are not component-based.
+CREATE TABLE IF NOT EXISTS role_components (
+  role_id      INTEGER NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
+  component_id INTEGER NOT NULL REFERENCES components(id) ON DELETE CASCADE,
+  PRIMARY KEY (role_id, component_id)
+);
+
 INSERT OR IGNORE INTO roles (key, label, playbook_path, supports_sub_roles) VALUES
-  ('lab', 'Lab server', 'playbooks/lab.yml', 0),
-  ('mgmt', 'Management', 'playbooks/mgmt.yml', 0),
-  ('k3s-cluster', 'K3s cluster', 'playbooks/k3s-cluster.yml', 1);
+  ('lab', 'Lab server', '', 0),
+  ('mgmt', 'Management', '', 0),
+  ('k3s-cluster', 'K3s cluster', 'k3s-cluster.yml', 1);
+
+-- Migrate roles created before the component-based role builder existed:
+-- lab/mgmt used to point at static playbooks that were never actually written.
+UPDATE roles SET playbook_path = '' WHERE key IN ('lab', 'mgmt') AND playbook_path != '';
+UPDATE roles SET playbook_path = 'k3s-cluster.yml' WHERE key = 'k3s-cluster' AND playbook_path != 'k3s-cluster.yml';
+
+INSERT OR IGNORE INTO components (key, label, description, ansible_role) VALUES
+  ('oh-my-zsh', 'Oh My Zsh', 'Installs zsh + Oh My Zsh for the deploy user.', 'oh-my-zsh'),
+  ('btop', 'btop', 'Installs the btop system monitor.', 'btop'),
+  ('telegraf', 'Telegraf', 'Installs and starts the Telegraf metrics agent.', 'telegraf');
+
+INSERT OR IGNORE INTO role_components (role_id, component_id)
+  SELECT r.id, c.id FROM roles r, components c WHERE r.key IN ('lab', 'mgmt') AND c.key = 'oh-my-zsh';

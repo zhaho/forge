@@ -1,0 +1,51 @@
+---
+# Vendored from ansible-deployment/roles/ansible-role-oh-my-zsh, adapted to run
+# for the connected host's remote_user instead of a list of local users.
+- name: "OMZ | establish home directory."
+  set_fact:
+    omz_user_home_dir: "{{ (ansible_system == 'Darwin') | ternary('Users', 'home') }}"
+    omz_target_user: "{{ ansible_user_id }}"
+
+- name: "OMZ | ensure zsh is installed."
+  package:
+    name: "zsh"
+    state: "present"
+  when: "omz_install_zsh"
+
+- name: "OMZ | get zsh installed path."
+  shell: "command -v zsh"
+  register: omz_zsh_installed_path
+  changed_when: "false"
+
+- name: "OMZ | set user shell to zsh."
+  become: true
+  user:
+    name: "{{ omz_target_user }}"
+    shell: "{{ omz_zsh_installed_path.stdout }}"
+
+- name: "OMZ | establish install location."
+  set_fact:
+    omz_install_path: "/{{ omz_user_home_dir }}/{{ omz_target_user }}/{{ omz_install_directory }}"
+
+- name: "OMZ | clone Oh My ZSH repo for user."
+  git:
+    repo: "{{ omz_git_repository }}"
+    dest: "{{ omz_install_path }}"
+    update: "true"
+    accept_hostkey: "true"
+    version: "master"
+  register: "omz_clone"
+
+- name: "OMZ | derive user .zshrc path."
+  set_fact:
+    omz_user_zshrc_path: "/{{ omz_user_home_dir }}/{{ omz_target_user }}/.zshrc"
+
+- name: "OMZ | template .zshrc into place."
+  template:
+    src: "{{ omz_zshrc_template }}"
+    dest: "{{ omz_user_zshrc_path }}"
+    backup: "{{ omz_zshrc_backup }}"
+    force: "{{ omz_zshrc_force }}"
+  vars:
+    omz_user_settings: ""
+  when: "omz_zshrc_create"

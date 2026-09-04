@@ -1,6 +1,14 @@
 const db = require('./index');
 
-const STEP_NAMES = ['allocate_ips', 'generate_terraform', 'terraform_init', 'terraform_apply'];
+const STEP_NAMES = [
+  'allocate_ips',
+  'generate_terraform',
+  'terraform_init',
+  'terraform_apply',
+  'wait_cloud_init',
+  'ansible_run',
+  'verify',
+];
 
 function listRoles() {
   return db.prepare('SELECT * FROM roles ORDER BY id').all();
@@ -25,11 +33,12 @@ function setWorkdir(id, workdirPath) {
   db.prepare('UPDATE deployments SET workdir_path = ? WHERE id = ?').run(workdirPath, id);
 }
 
-function addNode(deploymentId, name, subnetId) {
-  db.prepare('INSERT INTO deployment_nodes (deployment_id, name, subnet_id) VALUES (?, ?, ?)').run(
+function addNode(deploymentId, name, subnetId, subRole = null) {
+  db.prepare('INSERT INTO deployment_nodes (deployment_id, name, subnet_id, sub_role) VALUES (?, ?, ?, ?)').run(
     deploymentId,
     name,
     subnetId,
+    subRole,
   );
 }
 
@@ -39,6 +48,15 @@ function createSteps(deploymentId) {
 }
 
 const DESTROY_STEP_NAMES = ['terraform_destroy', 'mark_destroyed'];
+
+function resetStepsForRetry(deploymentId) {
+  const toReset = getSteps(deploymentId).filter((step) => step.status !== 'success');
+  const reset = db.prepare(
+    "UPDATE steps SET status = 'pending', started_at = NULL, finished_at = NULL WHERE id = ?",
+  );
+  toReset.forEach((step) => reset.run(step.id));
+  return toReset;
+}
 
 function markDestroyRequested(id) {
   db.prepare(
@@ -95,6 +113,41 @@ function updateNode(id, fields) {
   buildUpdate('deployment_nodes', id, fields);
 }
 
+function listComponents() {
+  return db.prepare('SELECT * FROM components ORDER BY label').all();
+}
+
+function getComponentsForRole(roleId) {
+  return db
+    .prepare(
+      `SELECT c.* FROM components c
+       JOIN role_components rc ON rc.component_id = c.id
+       WHERE rc.role_id = ?
+       ORDER BY c.label`,
+    )
+    .all(roleId);
+}
+
+function createRole({ key, label }) {
+  const info = db
+    .prepare("INSERT INTO roles (key, label, playbook_path, supports_sub_roles) VALUES (?, ?, '', 0)")
+    .run(key, label);
+  return info.lastInsertRowid;
+}
+
+function updateRoleLabel(id, label) {
+  db.prepare('UPDATE roles SET label = ? WHERE id = ?').run(label, id);
+}
+
+function setRoleComponents(roleId, componentIds) {
+  const deleteExisting = db.prepare('DELETE FROM role_components WHERE role_id = ?');
+  const insert = db.prepare('INSERT INTO role_components (role_id, component_id) VALUES (?, ?)');
+  db.transaction(() => {
+    deleteExisting.run(roleId);
+    componentIds.forEach((componentId) => insert.run(roleId, componentId));
+  })();
+}
+
 module.exports = {
   STEP_NAMES,
   listRoles,
@@ -104,6 +157,7 @@ module.exports = {
   setWorkdir,
   addNode,
   createSteps,
+  resetStepsForRetry,
   markDestroyRequested,
   createDestroySteps,
   getDeployment,
@@ -113,4 +167,9 @@ module.exports = {
   updateDeploymentStatus,
   updateStep,
   updateNode,
+  listComponents,
+  getComponentsForRole,
+  createRole,
+  updateRoleLabel,
+  setRoleComponents,
 };

@@ -4,6 +4,7 @@ const session = require('express-session');
 const { router: authRouter, hasAdminUser } = require('./routes/auth');
 const dashboardRouter = require('./routes/dashboard');
 const deploymentsRouter = require('./routes/deployments');
+const rolesRouter = require('./routes/roles');
 
 const app = express();
 
@@ -35,5 +36,6 @@ app.use((req, res, next) => {
 app.use('/', authRouter);
 app.use('/', dashboardRouter);
 app.use('/', deploymentsRouter);
+app.use('/', rolesRouter);
 
 module.exports = app;

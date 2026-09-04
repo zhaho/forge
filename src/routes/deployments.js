@@ -63,13 +63,31 @@ router.post('/deployments', requireAuth, (req, res) => {
 
   for (let i = 1; i <= qty; i += 1) {
     const nodeName = `${name}${String(i).padStart(2, '0')}`;
-    repo.addNode(deploymentId, nodeName, config.ipam.subnetId);
+    // k3s-cluster: first node created becomes the control-plane, the rest join as workers.
+    const subRole = roleRow.key === 'k3s-cluster' ? (i === 1 ? 'control-plane' : 'worker') : null;
+    repo.addNode(deploymentId, nodeName, config.ipam.subnetId, subRole);
   }
   repo.createSteps(deploymentId);
 
   queue.add(() => pipeline.runDeployment(deploymentId));
 
   res.redirect(`/deployments/${deploymentId}`);
+});
+
+router.post('/deployments/:id/retry', requireAuth, (req, res) => {
+  const deployment = repo.getDeployment(req.params.id);
+  if (!deployment) return res.status(404).send('Deployment not found');
+  if (deployment.status !== 'failed') {
+    return res.status(400).send(`Deployment is '${deployment.status}'; only failed deployments can be retried.`);
+  }
+
+  const resetSteps = repo.resetStepsForRetry(deployment.id);
+  resetSteps.forEach((step) => fs.rmSync(pipeline.stepLogPath(deployment, step), { force: true }));
+
+  repo.updateDeploymentStatus(deployment.id, 'queued');
+  queue.add(() => pipeline.runDeployment(deployment.id));
+
+  res.redirect(`/deployments/${deployment.id}`);
 });
 
 router.post('/deployments/:id/destroy', requireAuth, (req, res) => {
