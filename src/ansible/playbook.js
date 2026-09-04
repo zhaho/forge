@@ -17,7 +17,9 @@ function resolvePlaybook(deployment, role, onlyComponentId) {
     const component = repo.getComponentById(onlyComponentId);
     components = component ? [component] : [];
   } else {
-    components = repo.getComponentsForRole(role.id);
+    // Deployment's own tracked components, not the role's live list - they
+    // diverge once components are installed/removed per-deployment.
+    components = repo.getDeploymentComponents(deployment.id);
   }
 
   const lines = ['---', '- hosts: all', '  become: true'];
@@ -34,4 +36,19 @@ function resolvePlaybook(deployment, role, onlyComponentId) {
   return playbookPath;
 }
 
-module.exports = { resolvePlaybook };
+function resolveUninstallPlaybook(deployment, componentId) {
+  const component = repo.getComponentById(componentId);
+  const lines = ['---', '- hosts: all', '  become: true', '  tasks:'];
+
+  if (component) {
+    lines.push('    - include_role:');
+    lines.push(`        name: ${component.ansible_role}`);
+    lines.push('        tasks_from: uninstall');
+  }
+
+  const playbookPath = path.join(deployment.workdir_path, 'uninstall.yml');
+  fs.writeFileSync(playbookPath, `${lines.join('\n')}\n`);
+  return playbookPath;
+}
+
+module.exports = { resolvePlaybook, resolveUninstallPlaybook };

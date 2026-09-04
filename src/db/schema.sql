@@ -70,6 +70,15 @@ CREATE TABLE IF NOT EXISTS role_components (
   PRIMARY KEY (role_id, component_id)
 );
 
+-- Which components are actually installed on a given deployment right now.
+-- Seeded from the role's components at deployment creation time, then
+-- diverges independently as components are installed/removed per-deployment.
+CREATE TABLE IF NOT EXISTS deployment_components (
+  deployment_id INTEGER NOT NULL REFERENCES deployments(id) ON DELETE CASCADE,
+  component_id  INTEGER NOT NULL REFERENCES components(id) ON DELETE CASCADE,
+  PRIMARY KEY (deployment_id, component_id)
+);
+
 INSERT OR IGNORE INTO roles (key, label, playbook_path, supports_sub_roles) VALUES
   ('lab', 'Lab server', '', 0),
   ('mgmt', 'Management', '', 0),

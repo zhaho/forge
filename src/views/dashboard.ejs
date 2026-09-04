@@ -28,7 +28,7 @@
     </ul>
   </nav>
   <h1>Dashboard</h1>
-  <p><a href="/deployments/new" role="button">New deployment</a></p>
+  <p><a href="/deployments/new" role="button" class="btn-sm">New deployment</a></p>
 
   <% if (deployments.length===0) { %>
     <p>No deployments yet.</p>
@@ -74,12 +74,14 @@
                       </td>
                       <td class="actions-cell">
                         <% if (deployment.status===' failed' ) { %>
-                            <form method="POST" action="/deployments/<%= deployment.id %>/retry">
+                            <form method="POST" action="/deployments/<%= deployment.id %>/retry"
+                              data-loading-text="Retrying...">
                               <button type="submit">Retry</button>
                             </form>
                             <% } %>
                               <% if (['success', 'failed' ].includes(deployment.status)) { %>
                                 <form method="POST" action="/deployments/<%= deployment.id %>/destroy"
+                                  data-loading-text="Destroying..."
                                   onsubmit="return confirm('Destroy all nodes in \'<%= deployment.name %>\'? This cannot be undone.');">
                                   <button type="submit" class="contrast">Destroy</button>
                                 </form>

@@ -174,6 +174,47 @@ function setRoleComponents(roleId, componentIds) {
   })();
 }
 
+function getDeploymentComponents(deploymentId) {
+  return db
+    .prepare(
+      `SELECT c.* FROM components c
+       JOIN deployment_components dc ON dc.component_id = c.id
+       WHERE dc.deployment_id = ?
+       ORDER BY c.label`,
+    )
+    .all(deploymentId);
+}
+
+function seedDeploymentComponentsFromRole(deploymentId, roleId) {
+  const insert = db.prepare('INSERT OR IGNORE INTO deployment_components (deployment_id, component_id) VALUES (?, ?)');
+  getComponentsForRole(roleId).forEach((component) => insert.run(deploymentId, component.id));
+}
+
+function addDeploymentComponent(deploymentId, componentId) {
+  db.prepare('INSERT OR IGNORE INTO deployment_components (deployment_id, component_id) VALUES (?, ?)').run(
+    deploymentId,
+    componentId,
+  );
+}
+
+function removeDeploymentComponent(deploymentId, componentId) {
+  db.prepare('DELETE FROM deployment_components WHERE deployment_id = ? AND component_id = ?').run(
+    deploymentId,
+    componentId,
+  );
+}
+
+function appendUninstallStep(deploymentId, componentId) {
+  const existing = getSteps(deploymentId);
+  const nextSeq = existing.length ? Math.max(...existing.map((s) => s.seq)) + 1 : 1;
+  db.prepare('INSERT INTO steps (deployment_id, seq, name, params) VALUES (?, ?, ?, ?)').run(
+    deploymentId,
+    nextSeq,
+    'ansible_uninstall',
+    JSON.stringify({ componentId }),
+  );
+}
+
 module.exports = {
   STEP_NAMES,
   listRoles,
@@ -201,4 +242,9 @@ module.exports = {
   createRole,
   updateRoleLabel,
   setRoleComponents,
+  getDeploymentComponents,
+  seedDeploymentComponentsFromRole,
+  addDeploymentComponent,
+  removeDeploymentComponent,
+  appendUninstallStep,
 };

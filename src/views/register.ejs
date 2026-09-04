@@ -10,7 +10,7 @@
         <%= error %>
       </p>
       <% } %>
-        <form method="POST" action="/register">
+        <form method="POST" action="/register" class="form-compact">
           <label for="username">Username
             <input type="text" id="username" name="username" required autofocus>
           </label>
@@ -20,7 +20,7 @@
           <label for="confirmPassword">Confirm password
             <input type="password" id="confirmPassword" name="confirmPassword" required>
           </label>
-          <button type="submit">Create admin account</button>
+          <button type="submit" class="btn-sm">Create admin account</button>
         </form>
   </article>
   <%- include('partials/footer') %>

@@ -242,6 +242,40 @@ async function runAnsible(deployment, step, logPath) {
   );
 }
 
+async function runAnsibleUninstall(deployment, step, logPath) {
+  let componentId = null;
+  if (step.params) {
+    try {
+      componentId = JSON.parse(step.params).componentId || null;
+    } catch (err) {
+      // Malformed params - nothing sensible to uninstall.
+    }
+  }
+  if (!componentId) throw new Error('Uninstall step is missing a componentId');
+
+  const nodes = repo.getNodes(deployment.id);
+  const role = repo.getRoleById(deployment.role_id);
+  const inventoryPath = inventory.generateInventory(deployment, nodes, role);
+
+  const component = repo.getComponentById(componentId);
+  const line = `Uninstalling '${component ? component.label : componentId}'`;
+  appendLog(logPath, line);
+  emit(deployment.id, { type: 'log', step: step.name, line });
+
+  const playbookPath = playbookModule.resolveUninstallPlaybook(deployment, componentId);
+
+  await runCommand(
+    'ansible-playbook',
+    ['-i', inventoryPath, playbookPath],
+    deployment.workdir_path,
+    ansibleEnv(),
+    logPath,
+    (l) => emit(deployment.id, { type: 'log', step: step.name, line: l }),
+  );
+
+  repo.removeDeploymentComponent(deployment.id, componentId);
+}
+
 async function runVerify(deployment, step, logPath) {
   const inventoryPath = path.join(deployment.workdir_path, 'inventory.ini');
 
@@ -262,6 +296,7 @@ const STEP_RUNNERS = {
   terraform_apply: runTerraformApply,
   wait_cloud_init: runWaitCloudInit,
   ansible_run: runAnsible,
+  ansible_uninstall: runAnsibleUninstall,
   verify: runVerify,
   terraform_destroy: runTerraformDestroy,
   mark_destroyed: runMarkDestroyed,

@@ -21,6 +21,30 @@ function readStepLogs(steps) {
   return blocks.length ? `${blocks.join('\n\n')}\n` : '';
 }
 
+// Most recent ansible_run step that would have touched this component - either
+// one specifically targeting it (params.componentId) or a bulk run (no params,
+// covers every component installed at that time). Steps must be seq-ascending.
+function getComponentInstallStatus(steps, componentId) {
+  for (let i = steps.length - 1; i >= 0; i -= 1) {
+    const step = steps[i];
+    if (step.name !== 'ansible_run') continue;
+
+    let stepComponentId = null;
+    if (step.params) {
+      try {
+        stepComponentId = JSON.parse(step.params).componentId || null;
+      } catch (err) {
+        // Malformed params - treat as a bulk run.
+      }
+    }
+
+    if (stepComponentId === null || stepComponentId === componentId) {
+      return step.status;
+    }
+  }
+  return 'pending';
+}
+
 router.get('/deployments/new', requireAuth, (req, res) => {
   res.render('deployments/new', {
     roles: repo.listRoles(),
@@ -68,6 +92,7 @@ router.post('/deployments', requireAuth, (req, res) => {
     repo.addNode(deploymentId, nodeName, config.ipam.subnetId, subRole);
   }
   repo.createSteps(deploymentId);
+  repo.seedDeploymentComponentsFromRole(deploymentId, roleRow.id);
 
   queue.add(() => pipeline.runDeployment(deploymentId));
 
@@ -132,17 +157,55 @@ router.post('/deployments/:id/reinstall/:componentId', requireAuth, (req, res) =
   res.redirect(`/deployments/${deployment.id}`);
 });
 
+router.post('/deployments/:id/components/:componentId/install', requireAuth, (req, res) => {
+  const deployment = repo.getDeployment(req.params.id);
+  if (!deployment) return res.status(404).send('Deployment not found');
+  if (['running', 'queued', 'destroyed'].includes(deployment.status)) {
+    return res.status(400).send(`Deployment is currently '${deployment.status}' and cannot be changed right now.`);
+  }
+
+  const componentId = Number(req.params.componentId);
+  repo.addDeploymentComponent(deployment.id, componentId);
+  repo.appendReinstallSteps(deployment.id, componentId);
+  repo.updateDeploymentStatus(deployment.id, 'queued');
+  queue.add(() => pipeline.runDeployment(deployment.id));
+
+  res.redirect(`/deployments/${deployment.id}`);
+});
+
+router.post('/deployments/:id/components/:componentId/uninstall', requireAuth, (req, res) => {
+  const deployment = repo.getDeployment(req.params.id);
+  if (!deployment) return res.status(404).send('Deployment not found');
+  if (['running', 'queued', 'destroyed'].includes(deployment.status)) {
+    return res.status(400).send(`Deployment is currently '${deployment.status}' and cannot be changed right now.`);
+  }
+
+  repo.appendUninstallStep(deployment.id, Number(req.params.componentId));
+  repo.updateDeploymentStatus(deployment.id, 'queued');
+  queue.add(() => pipeline.runDeployment(deployment.id));
+
+  res.redirect(`/deployments/${deployment.id}`);
+});
+
 router.get('/deployments/:id', requireAuth, (req, res) => {
   const deployment = repo.getDeployment(req.params.id);
   if (!deployment) return res.status(404).send('Deployment not found');
 
   const steps = repo.getSteps(deployment.id);
   const role = repo.getRoleById(deployment.role_id);
+  const installedComponents = (role.playbook_path ? [] : repo.getDeploymentComponents(deployment.id)).map(
+    (component) => ({ ...component, installStatus: getComponentInstallStatus(steps, component.id) }),
+  );
+  const installedIds = new Set(installedComponents.map((c) => c.id));
+  const availableComponents = role.playbook_path
+    ? []
+    : repo.listComponents().filter((c) => !installedIds.has(c.id));
 
   res.render('deployments/show', {
     deployment,
     role,
-    components: role.playbook_path ? [] : repo.getComponentsForRole(role.id),
+    installedComponents,
+    availableComponents,
     nodes: repo.getNodes(deployment.id),
     steps,
     existingLog: readStepLogs(steps),

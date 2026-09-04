@@ -13,7 +13,7 @@
       <%= error %>
     </p>
     <% } %>
-      <form method="POST" action="/roles">
+      <form method="POST" action="/roles" class="form-compact">
         <label for="key">Key
           <input type="text" id="key" name="key" value="<%= form.key %>" pattern="[a-z][a-z0-9-]{1,19}" maxlength="20"
             placeholder="e.g. dev-box" required autofocus>
@@ -37,6 +37,6 @@
             <% }) %>
         </fieldset>
 
-        <button type="submit">Create role</button>
+        <button type="submit" class="btn-sm">Create role</button>
       </form>
       <%- include('../partials/footer') %>

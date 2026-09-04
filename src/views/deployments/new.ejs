@@ -14,7 +14,7 @@
       <%= error %>
     </p>
     <% } %>
-      <form method="POST" action="/deployments" autocomplete="off">
+      <form method="POST" action="/deployments" autocomplete="off" class="form-compact">
         <label for="servername">Servername
           <input type="text" id="servername" name="servername" value="<%= form.name %>" pattern="[a-z][a-z0-9-]{0,11}"
             maxlength="12" placeholder="e.g. lab" required autofocus autocomplete="off" autocapitalize="off"
@@ -37,6 +37,6 @@
           <input type="number" id="quantity" name="quantity" value="<%= form.quantity %>" min="1" max="10" required>
         </label>
 
-        <button type="submit">Deploy</button>
+        <button type="submit" class="btn-sm">Deploy</button>
       </form>
       <%- include('../partials/footer') %>

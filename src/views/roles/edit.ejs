@@ -14,7 +14,7 @@
       <%= error %>
     </p>
     <% } %>
-      <form method="POST" action="/roles/<%= role.id %>">
+      <form method="POST" action="/roles/<%= role.id %>" class="form-compact">
         <label for="label">Label
           <input type="text" id="label" name="label" value="<%= form.label %>" required autofocus>
         </label>
@@ -33,6 +33,6 @@
             <% }) %>
         </fieldset>
 
-        <button type="submit">Save changes</button>
+        <button type="submit" class="btn-sm">Save changes</button>
       </form>
       <%- include('../partials/footer') %>

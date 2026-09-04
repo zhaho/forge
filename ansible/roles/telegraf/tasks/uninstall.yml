@@ -1,0 +1,17 @@
+---
+- name: "telegraf | stop and disable service"
+  ansible.builtin.service:
+    name: telegraf
+    state: stopped
+    enabled: false
+  ignore_errors: true
+
+- name: "telegraf | uninstall package"
+  package:
+    name: telegraf
+    state: absent
+
+- name: "telegraf | remove config"
+  ansible.builtin.file:
+    path: /etc/telegraf/telegraf.conf
+    state: absent

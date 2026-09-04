@@ -1,0 +1,27 @@
+---
+# Re-derive the same facts tasks/main.yml sets, since uninstall.yml runs
+# standalone via `include_role: tasks_from: uninstall`.
+- name: "OMZ | establish home directory (uninstall)."
+  set_fact:
+    omz_user_home_dir: "{{ (ansible_system == 'Darwin') | ternary('Users', 'home') }}"
+    omz_target_user: "{{ deploy_user }}"
+
+- name: "OMZ | establish install location (uninstall)."
+  set_fact:
+    omz_install_path: "/{{ omz_user_home_dir }}/{{ omz_target_user }}/{{ omz_install_directory }}"
+
+- name: "OMZ | remove Oh My ZSH install directory."
+  ansible.builtin.file:
+    path: "{{ omz_install_path }}"
+    state: absent
+
+- name: "OMZ | remove .zshrc."
+  ansible.builtin.file:
+    path: "/{{ omz_user_home_dir }}/{{ omz_target_user }}/.zshrc"
+    state: absent
+
+- name: "OMZ | revert user shell to bash."
+  become: true
+  user:
+    name: "{{ omz_target_user }}"
+    shell: /bin/bash
