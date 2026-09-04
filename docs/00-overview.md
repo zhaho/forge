@@ -61,3 +61,4 @@ re-run, and a dark-mode UI.
 | [04-roles-and-playbooks.md](./04-roles-and-playbooks.md) | Role catalog, k3s sub-role logic |
 | [05-roadmap.md](./05-roadmap.md) | Phased delivery plan |
 | [06-decisions.md](./06-decisions.md) | Decision log (ADR-style) + open questions |
+| [07-system-documentation.md](./07-system-documentation.md) | As-built system reference + dependency/independence analysis |

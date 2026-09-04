@@ -26,15 +26,26 @@
 
         <fieldset>
           <legend>Components</legend>
-          <% components.forEach(function (component) { %>
-            <label>
-              <input type="checkbox" name="componentIds" value="<%= component.id %>"
-                <%=form.componentIds.includes(component.id) ? 'checked' : '' %>>
-              <%= component.label %>
-                <% if (component.description) { %><small> &mdash; <%= component.description %></small>
-                  <% } %>
-            </label>
-            <% }) %>
+          <ul class="component-checklist">
+            <% components.forEach(function (component) { %>
+              <li>
+                <label>
+                  <input type="checkbox" name="componentIds" value="<%= component.id %>"
+                    <%=form.componentIds.includes(component.id) ? 'checked' : '' %>>
+                  <span class="package-info">
+                    <span class="package-name">
+                      <%= component.label %>
+                    </span>
+                    <% if (component.description) { %>
+                      <small class="package-desc">
+                        <%= component.description %>
+                      </small>
+                      <% } %>
+                  </span>
+                </label>
+              </li>
+              <% }) %>
+          </ul>
         </fieldset>
 
         <button type="submit" class="btn-sm">Create role</button>

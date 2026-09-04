@@ -14,6 +14,12 @@
     state: "present"
   when: "omz_install_zsh"
 
+- name: "OMZ | install autojump package."
+  package:
+    name: "autojump"
+    state: "present"
+  when: "'autojump' in omz_plugins"
+
 - name: "OMZ | get zsh installed path."
   shell: "command -v zsh"
   register: omz_zsh_installed_path

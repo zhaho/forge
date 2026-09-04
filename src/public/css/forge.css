@@ -11,6 +11,25 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  position: relative;
+}
+
+/* Flame-glow ambient effect: a fixed-position layer pinned to the bottom of
+   the viewport (not the page), so it never scrolls out of view or past.
+   background-attachment: fixed was unreliable here with the flex body layout. */
+body::before {
+  content: "";
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 30vh;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse 70% 60% at 50% 100%,
+      rgba(247, 148, 29, 0.4) 0%,
+      rgba(247, 148, 29, 0.18) 40%,
+      rgba(247, 148, 29, 0) 75%);
 }
 
 body>main.container {
@@ -129,6 +148,43 @@ body>footer.container {
 
 .package-desc {
   color: var(--pico-muted-color);
+}
+
+.component-checklist {
+  list-style: none;
+  margin: 0.5rem 0 1rem;
+  padding: 0;
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.component-checklist li {
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.component-checklist li:last-child {
+  border-bottom: none;
+}
+
+.component-checklist label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.component-checklist label:hover {
+  background: var(--pico-card-background-color);
+}
+
+.component-checklist input[type="checkbox"] {
+  flex-shrink: 0;
+  margin: 0;
 }
 
 .brand-logo {
