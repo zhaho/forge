@@ -5,12 +5,24 @@
     </ul>
     <ul>
       <li>
-        <%= username %>
-      </li>
-      <li>
-        <form method="POST" action="/logout" style="display:inline">
-          <button class="secondary outline" type="submit">Logout</button>
-        </form>
+        <div class="user-menu">
+          <span class="user-avatar">
+            <%= username.charAt(0).toUpperCase() %>
+          </span>
+          <span class="user-name">
+            <%= username %>
+          </span>
+          <form method="POST" action="/logout" class="logout-form">
+            <button type="submit" class="logout-btn" title="Logout" aria-label="Logout">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </button>
+          </form>
+        </div>
       </li>
     </ul>
   </nav>
