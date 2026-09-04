@@ -1,4 +1,6 @@
 <% var statusBadgeClass={ success: 'badge-success' , failed: 'badge-error' , interrupted: 'badge-error' ,
-  running: 'badge-info' , queued: 'badge-info' , destroyed: 'badge-ghost' , pending: 'badge-ghost' }; %>
+  running: 'badge-info' , queued: 'badge-info' , destroyed: 'bg-base-300 border-base-300 text-base-content/50' ,
+  pending: 'bg-base-300 border-base-300 text-base-content/80' , ready: 'badge-success' }; %>
   <span <% if (typeof id !=='undefined' ) { %>id="<%= id %>" <% } %>
-        class="status-badge badge rounded-sm <%= statusBadgeClass[status] || 'badge-ghost' %>"><%= status %></span>
+        class="status-badge badge rounded-sm items-center justify-center text-center leading-none <%=
+          statusBadgeClass[status] || 'bg-base-300 border-base-300 text-base-content/80' %>"><%= status %></span>

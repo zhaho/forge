@@ -9,12 +9,16 @@
     interrupted: 'badge-error',
     running: 'badge-info',
     queued: 'badge-info',
-    destroyed: 'badge-ghost',
-    pending: 'badge-ghost',
+    destroyed: 'bg-base-300 border-base-300 text-base-content/50',
+    pending: 'bg-base-300 border-base-300 text-base-content/80',
+    ready: 'badge-success',
   };
 
   function badgeClassFor(status) {
-    return 'badge rounded-sm ' + (STATUS_BADGE_CLASS[status] || 'badge-ghost');
+    return (
+      'badge rounded-sm items-center justify-center text-center leading-none ' +
+      (STATUS_BADGE_CLASS[status] || 'bg-base-300 border-base-300 text-base-content/80')
+    );
   }
 
   // Keep in sync with the stepDotClass map in deployments/show.ejs
