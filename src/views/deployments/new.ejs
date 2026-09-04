@@ -1,14 +1,24 @@
 <%- include('../partials/header') %>
+  <nav>
+    <ul>
+      <li><%- include('../partials/brand') %></li>
+    </ul>
+    <ul>
+      <li><a href="/">&larr; Dashboard</a></li>
+    </ul>
+  </nav>
   <h1>New deployment</h1>
   <% if (error) { %>
     <p style="color: var(--pico-del-color);">
       <%= error %>
     </p>
     <% } %>
-      <form method="POST" action="/deployments">
-        <label for="name">Name
-          <input type="text" id="name" name="name" value="<%= form.name %>" pattern="[a-z][a-z0-9-]{0,11}"
-            maxlength="12" placeholder="e.g. lab" required autofocus>
+      <form method="POST" action="/deployments" autocomplete="off">
+        <label for="servername">Servername
+          <input type="text" id="servername" name="servername" value="<%= form.name %>" pattern="[a-z][a-z0-9-]{0,11}"
+            maxlength="12" placeholder="e.g. lab" required autofocus autocomplete="off" autocapitalize="off"
+            autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore
+            data-form-type="other">
         </label>
         <small>Nodes will be named <code>&lt;name&gt;01</code>, <code>&lt;name&gt;02</code>, ...</small>
 

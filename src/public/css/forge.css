@@ -17,3 +17,33 @@
 .status-running {
   color: var(--pico-primary);
 }
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.brand-logo {
+  height: 2rem;
+  width: auto;
+  display: block;
+}
+
+.brand-text {
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 0.06em;
+  background: linear-gradient(135deg, #F7941D, #ED1C24);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.brand-logo-big {
+  display: block;
+  width: 50%;
+  max-width: 220px;
+  margin: 0 auto 1.5rem;
+}

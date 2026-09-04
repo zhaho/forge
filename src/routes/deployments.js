@@ -30,7 +30,7 @@ router.get('/deployments/new', requireAuth, (req, res) => {
 });
 
 router.post('/deployments', requireAuth, (req, res) => {
-  const { name, role, quantity } = req.body;
+  const { servername: name, role, quantity } = req.body;
   const roles = repo.listRoles();
   const roleRow = repo.getRoleByKey(role);
   const qty = parseInt(quantity, 10);
@@ -70,6 +70,20 @@ router.post('/deployments', requireAuth, (req, res) => {
   queue.add(() => pipeline.runDeployment(deploymentId));
 
   res.redirect(`/deployments/${deploymentId}`);
+});
+
+router.post('/deployments/:id/destroy', requireAuth, (req, res) => {
+  const deployment = repo.getDeployment(req.params.id);
+  if (!deployment) return res.status(404).send('Deployment not found');
+  if (['running', 'queued', 'destroyed'].includes(deployment.status)) {
+    return res.status(400).send(`Deployment is currently '${deployment.status}' and cannot be destroyed right now.`);
+  }
+
+  repo.markDestroyRequested(deployment.id);
+  repo.createDestroySteps(deployment.id);
+  queue.add(() => pipeline.runDeployment(deployment.id));
+
+  res.redirect(`/deployments/${deployment.id}`);
 });
 
 router.get('/deployments/:id', requireAuth, (req, res) => {

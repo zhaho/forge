@@ -38,6 +38,21 @@ function createSteps(deploymentId) {
   STEP_NAMES.forEach((stepName, idx) => insert.run(deploymentId, idx + 1, stepName));
 }
 
+const DESTROY_STEP_NAMES = ['terraform_destroy', 'mark_destroyed'];
+
+function markDestroyRequested(id) {
+  db.prepare(
+    "UPDATE deployments SET action = 'destroy', status = 'queued', updated_at = datetime('now') WHERE id = ?",
+  ).run(id);
+}
+
+function createDestroySteps(deploymentId) {
+  const existing = getSteps(deploymentId);
+  const nextSeq = existing.length ? Math.max(...existing.map((s) => s.seq)) + 1 : 1;
+  const insert = db.prepare('INSERT INTO steps (deployment_id, seq, name) VALUES (?, ?, ?)');
+  DESTROY_STEP_NAMES.forEach((stepName, idx) => insert.run(deploymentId, nextSeq + idx, stepName));
+}
+
 function getDeployment(id) {
   return db.prepare('SELECT * FROM deployments WHERE id = ?').get(id);
 }
@@ -89,6 +104,8 @@ module.exports = {
   setWorkdir,
   addNode,
   createSteps,
+  markDestroyRequested,
+  createDestroySteps,
   getDeployment,
   listDeployments,
   getNodes,

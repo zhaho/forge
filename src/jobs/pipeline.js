@@ -33,6 +33,26 @@ function markStepDone(deployment, step, status) {
   emit(deployment.id, { type: 'step', seq: step.seq, name: step.name, status });
 }
 
+async function allocateIpForNode(deployment, node, logPath, step) {
+  const maxAttempts = 5;
+  for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    const ip = await ipam.firstFreeIp(node.subnet_id);
+    try {
+      await ipam.registerIp(node.subnet_id, ip, node.name, `VM ${node.name} deployed by Forge`);
+      return ip;
+    } catch (err) {
+      if (err.alreadyExists && attempt < maxAttempts) {
+        const line = `${ip} was claimed by another allocation just now, retrying...`;
+        appendLog(logPath, line);
+        emit(deployment.id, { type: 'log', step: step.name, line });
+        continue;
+      }
+      throw err;
+    }
+  }
+  throw new Error(`Could not find a free IP for ${node.name} after ${maxAttempts} attempts`);
+}
+
 async function runAllocateIps(deployment, step, logPath) {
   const nodes = repo.getNodes(deployment.id);
   for (const node of nodes) {
@@ -41,7 +61,7 @@ async function runAllocateIps(deployment, step, logPath) {
     appendLog(logPath, line);
     emit(deployment.id, { type: 'log', step: step.name, line });
 
-    const ip = await ipam.firstFreeIp(node.subnet_id);
+    const ip = await allocateIpForNode(deployment, node, logPath, step);
     repo.updateNode(node.id, { ip });
 
     const assignedLine = `${node.name} -> ${ip}`;
@@ -90,11 +110,31 @@ async function runTerraformApply(deployment, step, logPath) {
   repo.getNodes(deployment.id).forEach((node) => repo.updateNode(node.id, { status: 'ready' }));
 }
 
+async function runTerraformDestroy(deployment, step, logPath) {
+  await runCommand(
+    'terraform',
+    ['destroy', '-auto-approve', '-input=false', '-no-color'],
+    deployment.workdir_path,
+    terraformEnv(),
+    logPath,
+    (line) => emit(deployment.id, { type: 'log', step: step.name, line }),
+  );
+}
+
+async function runMarkDestroyed(deployment, step, logPath) {
+  repo.getNodes(deployment.id).forEach((node) => repo.updateNode(node.id, { status: 'destroyed' }));
+  const line = `All nodes for ${deployment.name} marked as destroyed.`;
+  appendLog(logPath, line);
+  emit(deployment.id, { type: 'log', step: step.name, line });
+}
+
 const STEP_RUNNERS = {
   allocate_ips: runAllocateIps,
   generate_terraform: runGenerateTerraform,
   terraform_init: runTerraformInit,
   terraform_apply: runTerraformApply,
+  terraform_destroy: runTerraformDestroy,
+  mark_destroyed: runMarkDestroyed,
 };
 
 async function runDeployment(deploymentId) {
@@ -119,8 +159,9 @@ async function runDeployment(deploymentId) {
     }
   }
 
-  repo.updateDeploymentStatus(deploymentId, 'success');
-  emit(deploymentId, { type: 'deployment', status: 'success' });
+  const finalStatus = deployment.action === 'destroy' ? 'destroyed' : 'success';
+  repo.updateDeploymentStatus(deploymentId, finalStatus);
+  emit(deploymentId, { type: 'deployment', status: finalStatus });
 }
 
 module.exports = { runDeployment };

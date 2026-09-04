@@ -26,4 +26,26 @@ async function firstFreeIp(subnetId) {
   return body.data;
 }
 
-module.exports = { getToken, firstFreeIp };
+// Claims an IP immediately so a subsequent first_free call (e.g. for the next
+// node in the same deployment) won't hand out the same address again - IPAM
+// only excludes addresses that are actually registered, not just "requested".
+async function registerIp(subnetId, ip, hostname, description) {
+  const token = await getToken();
+  const res = await fetch(`${config.ipam.url}/api/${config.ipam.appId}/addresses/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', token },
+    body: JSON.stringify({ subnetId: String(subnetId), ip, hostname, description, note: 'Reserved by Forge' }),
+  });
+  const body = await res.json().catch(() => null);
+  if (body && body.success === true) return body;
+
+  const message = (body && body.message) || '';
+  if (/already exists/i.test(message)) {
+    const err = new Error(`IP ${ip} was already taken (lost allocation race)`);
+    err.alreadyExists = true;
+    throw err;
+  }
+  throw new Error(`IPAM address registration failed for ${ip}: ${JSON.stringify(body)}`);
+}
+
+module.exports = { getToken, firstFreeIp, registerIp };
