@@ -156,7 +156,9 @@ body>footer.container {
 
 .brand-text-big {
   text-align: center;
-  font-size: 2rem;
+  font-size: 4.5rem;
+  line-height: 1;
+  white-space: nowrap;
   margin: -0.5rem 0 1.5rem;
 }
 

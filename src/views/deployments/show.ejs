@@ -40,34 +40,45 @@
                 <% if (installedComponents.length===0) { %>
                   <p><em>Nothing installed yet.</em></p>
                   <% } else { %>
-                    <ul>
-                      <% installedComponents.forEach(function (component) { %>
-                        <li>
-                          <%= component.label %>
-                            <span class="status status-<%= component.installStatus %>">
-                              <%= component.installStatus %>
-                            </span>
-                            <% if (component.description) { %> &mdash; <small>
-                                <%= component.description %>
-                              </small>
-                              <% } %>
-                                <% if (canManage) { %>
-                                  <form method="POST"
-                                    action="/deployments/<%= deployment.id %>/reinstall/<%= component.id %>"
-                                    style="display:inline-block" data-loading-text="Reinstalling...">
-                                    <button type="submit" class="outline secondary btn-sm"
-                                      style="padding: 0.1rem 0.5rem; font-size: 0.8em;">Reinstall</button>
-                                  </form>
-                                  <form method="POST"
-                                    action="/deployments/<%= deployment.id %>/components/<%= component.id %>/uninstall"
-                                    style="display:inline-block" data-loading-text="Removing...">
-                                    <button type="submit" class="outline contrast btn-sm"
-                                      style="padding: 0.1rem 0.5rem; font-size: 0.8em;">Remove</button>
-                                  </form>
-                                  <% } %>
-                        </li>
-                        <% }) %>
-                    </ul>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Component</th>
+                          <th>Status</th>
+                          <th>Description</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <% installedComponents.forEach(function (component) { %>
+                          <tr>
+                            <td>
+                              <%= component.label %>
+                            </td>
+                            <td><span class="status status-<%= component.installStatus %>">
+                                <%= component.installStatus %>
+                              </span></td>
+                            <td><small>
+                                <%= component.description || '' %>
+                              </small></td>
+                            <td class="actions-cell">
+                              <% if (canManage) { %>
+                                <form method="POST"
+                                  action="/deployments/<%= deployment.id %>/reinstall/<%= component.id %>"
+                                  data-loading-text="Reinstalling...">
+                                  <button type="submit" class="outline secondary btn-sm">Reinstall</button>
+                                </form>
+                                <form method="POST"
+                                  action="/deployments/<%= deployment.id %>/components/<%= component.id %>/uninstall"
+                                  data-loading-text="Removing...">
+                                  <button type="submit" class="outline contrast btn-sm">Remove</button>
+                                </form>
+                                <% } %>
+                            </td>
+                          </tr>
+                          <% }) %>
+                      </tbody>
+                    </table>
                     <% } %>
 
                       <% if (canManage) { %>
