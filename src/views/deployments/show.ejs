@@ -1,169 +1,163 @@
 <%- include('../partials/header') %>
-  <nav>
-    <ul>
-      <li><%- include('../partials/brand') %></li>
-    </ul>
-    <ul>
-      <li><a href="/roles">Roles</a></li>
-      <li><a href="/">&larr; Dashboard</a></li>
-    </ul>
-  </nav>
-  <h1>
-    <%= deployment.name %> <small>(<%= role.label %>)</small>
-  </h1>
-  <p>Status: <span id="deployment-status" class="status status-<%= deployment.status %>">
-      <%= deployment.status %>
-    </span></p>
+  <%- include('../partials/nav') %>
 
-  <% if (deployment.status==='failed' ) { %>
-    <form method="POST" action="/deployments/<%= deployment.id %>/retry" style="display:inline-block"
-      data-loading-text="Retrying...">
-      <button type="submit" class="btn-sm">Retry</button>
-    </form>
-    <% } %>
-      <% if (['success', 'failed' ].includes(deployment.status)) { %>
-        <form method="POST" action="/deployments/<%= deployment.id %>/destroy" style="display:inline-block"
-          data-loading-text="Destroying..."
-          onsubmit="return confirm('Destroy all nodes in \'<%= deployment.name %>\'? This cannot be undone.');">
-          <button type="submit" class="contrast btn-sm">Destroy</button>
+    <h1 class="text-2xl font-bold mb-2">
+      <%= deployment.name %> <small class="text-base-content/60 font-normal">(<%= role.label %>)</small>
+    </h1>
+    <p class="mb-4">Status: <%- include('../partials/status-badge', { status: deployment.status, id: 'deployment-status'
+        }) %>
+    </p>
+
+    <div class="flex gap-2 mb-6">
+      <% if (deployment.status==='failed' ) { %>
+        <form method="POST" action="/deployments/<%= deployment.id %>/retry" data-loading-text="Retrying...">
+          <button type="submit" class="btn btn-sm rounded-none">Retry</button>
         </form>
         <% } %>
+          <% if (['success', 'failed' ].includes(deployment.status)) { %>
+            <form method="POST" action="/deployments/<%= deployment.id %>/destroy" data-loading-text="Destroying..."
+              onsubmit="return confirm('Destroy all nodes in \'<%= deployment.name %>\'? This cannot be undone.');">
+              <button type="submit" class="btn btn-error btn-sm rounded-none">Destroy</button>
+            </form>
+            <% } %>
+    </div>
 
-          <h2>Components</h2>
-          <% if (role.playbook_path) { %>
-            <p><em>This role uses a dedicated playbook (<%= role.playbook_path %>), not the component system.</em>
-            </p>
+    <h2 class="text-lg font-bold mb-2">Components</h2>
+    <% if (role.playbook_path) { %>
+      <p class="mb-6"><em>This role uses a dedicated playbook (<%= role.playbook_path %>), not the component
+            system.</em>
+      </p>
+      <% } else { %>
+        <% var canManage=['success', 'failed' ].includes(deployment.status); %>
+
+          <h3 class="font-semibold mb-2">Installed</h3>
+          <% if (installedComponents.length===0) { %>
+            <p class="mb-4"><em>Nothing installed yet.</em></p>
             <% } else { %>
-              <% var canManage=['success', 'failed' ].includes(deployment.status); %>
+              <div class="overflow-x-auto mb-4">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Component</th>
+                      <th>Status</th>
+                      <th>Description</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% installedComponents.forEach(function (component) { %>
+                      <tr>
+                        <td>
+                          <%= component.label %>
+                        </td>
+                        <td><%- include('../partials/status-badge', { status: component.installStatus }) %></td>
+                        <td><small>
+                            <%= component.description || '' %>
+                          </small></td>
+                        <td class="flex flex-wrap gap-2 whitespace-nowrap">
+                          <% if (canManage) { %>
+                            <form method="POST" action="/deployments/<%= deployment.id %>/reinstall/<%= component.id %>"
+                              data-loading-text="Reinstalling...">
+                              <button type="submit" class="btn btn-outline btn-sm rounded-none">Reinstall</button>
+                            </form>
+                            <form method="POST"
+                              action="/deployments/<%= deployment.id %>/components/<%= component.id %>/uninstall"
+                              data-loading-text="Removing...">
+                              <button type="submit"
+                                class="btn btn-outline btn-error btn-sm rounded-none">Remove</button>
+                            </form>
+                            <% } %>
+                        </td>
+                      </tr>
+                      <% }) %>
+                  </tbody>
+                </table>
+              </div>
+              <% } %>
 
-                <h3>Installed</h3>
-                <% if (installedComponents.length===0) { %>
-                  <p><em>Nothing installed yet.</em></p>
-                  <% } else { %>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Component</th>
-                          <th>Status</th>
-                          <th>Description</th>
-                          <th></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <% installedComponents.forEach(function (component) { %>
-                          <tr>
-                            <td>
-                              <%= component.label %>
-                            </td>
-                            <td><span class="status status-<%= component.installStatus %>">
-                                <%= component.installStatus %>
-                              </span></td>
-                            <td><small>
-                                <%= component.description || '' %>
-                              </small></td>
-                            <td class="actions-cell">
+                <% if (canManage) { %>
+                  <form method="POST" action="/deployments/<%= deployment.id %>/reinstall" class="mb-6"
+                    data-loading-text="Reinstalling...">
+                    <button type="submit" class="btn btn-sm rounded-none">Reinstall everything</button>
+                  </form>
+                  <% } %>
+
+                    <h3 class="font-semibold mb-2">Add a component</h3>
+                    <% if (availableComponents.length===0) { %>
+                      <p class="mb-6"><em>Every known component is already installed on this deployment.</em></p>
+                      <% } else { %>
+                        <input type="search" id="component-search" placeholder="Search packages..."
+                          class="input input-bordered input-sm rounded-none w-full max-w-sm mb-2">
+                        <ul id="available-components-list" class="divide-y divide-base-300 border border-base-300 mb-6">
+                          <% availableComponents.forEach(function (component) { %>
+                            <li class="component-option flex items-center justify-between gap-3 p-3"
+                              data-label="<%= component.label.toLowerCase() %>">
+                              <span class="flex flex-col gap-0.5">
+                                <span class="font-semibold">
+                                  <%= component.label %>
+                                </span>
+                                <% if (component.description) { %>
+                                  <span class="text-sm text-base-content/60">
+                                    <%= component.description %>
+                                  </span>
+                                  <% } %>
+                              </span>
                               <% if (canManage) { %>
                                 <form method="POST"
-                                  action="/deployments/<%= deployment.id %>/reinstall/<%= component.id %>"
-                                  data-loading-text="Reinstalling...">
-                                  <button type="submit" class="outline secondary btn-sm">Reinstall</button>
-                                </form>
-                                <form method="POST"
-                                  action="/deployments/<%= deployment.id %>/components/<%= component.id %>/uninstall"
-                                  data-loading-text="Removing...">
-                                  <button type="submit" class="outline contrast btn-sm">Remove</button>
+                                  action="/deployments/<%= deployment.id %>/components/<%= component.id %>/install"
+                                  data-loading-text="Installing...">
+                                  <button type="submit" class="btn btn-primary btn-xs rounded-none">Install</button>
                                 </form>
                                 <% } %>
-                            </td>
-                          </tr>
-                          <% }) %>
-                      </tbody>
-                    </table>
-                    <% } %>
-
-                      <% if (canManage) { %>
-                        <form method="POST" action="/deployments/<%= deployment.id %>/reinstall"
-                          style="display:inline-block" data-loading-text="Reinstalling...">
-                          <button type="submit" class="btn-sm">Reinstall everything</button>
-                        </form>
+                            </li>
+                            <% }) %>
+                        </ul>
                         <% } %>
+                          <% } %>
 
-                          <h3>Add a component</h3>
-                          <% if (availableComponents.length===0) { %>
-                            <p><em>Every known component is already installed on this deployment.</em></p>
-                            <% } else { %>
-                              <input type="search" id="component-search" placeholder="Search packages..."
-                                class="form-compact package-search">
-                              <ul id="available-components-list" class="package-list">
-                                <% availableComponents.forEach(function (component) { %>
-                                  <li class="component-option" data-label="<%= component.label.toLowerCase() %>">
-                                    <span class="package-info">
-                                      <span class="package-name">
-                                        <%= component.label %>
-                                      </span>
-                                      <% if (component.description) { %>
-                                        <small class="package-desc">
-                                          <%= component.description %>
-                                        </small>
-                                        <% } %>
-                                    </span>
-                                    <% if (canManage) { %>
-                                      <form method="POST"
-                                        action="/deployments/<%= deployment.id %>/components/<%= component.id %>/install"
-                                        style="display:inline-block" data-loading-text="Installing...">
-                                        <button type="submit" class="btn-sm"
-                                          style="padding: 0.1rem 0.5rem; font-size: 0.8em;">Install</button>
-                                      </form>
-                                      <% } %>
-                                  </li>
-                                  <% }) %>
-                              </ul>
-                              <% } %>
-                                <% } %>
+                            <h2 class="text-lg font-bold mb-2">Nodes</h2>
+                            <ul class="list-disc list-inside mb-6">
+                              <% nodes.forEach(function (node) { %>
+                                <li>
+                                  <%= node.name %>
 
-                                  <h2>Nodes</h2>
-                                  <ul>
-                                    <% nodes.forEach(function (node) { %>
-                                      <li>
-                                        <%= node.name %>
+                                    <%= node.sub_role ? ' (' + node.sub_role + ')' : '' %> &mdash;
+                                      <%= node.ip || 'pending IP' %> (<%= node.status %>)
+                                </li>
+                                <% }) %>
+                            </ul>
 
-                                          <%= node.sub_role ? ' (' + node.sub_role + ')' : '' %> &mdash;
-                                            <%= node.ip || 'pending IP' %> (<%= node.status %>)
-                                      </li>
-                                      <% }) %>
-                                  </ul>
+                            <h2 class="text-lg font-bold mb-2">Steps</h2>
+                            <div class="overflow-x-auto mb-6">
+                              <table class="table">
+                                <thead>
+                                  <tr>
+                                    <th>#</th>
+                                    <th>Step</th>
+                                    <th>Status</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  <% steps.forEach(function (step) { %>
+                                    <tr data-step="<%= step.seq %>">
+                                      <td>
+                                        <%= step.seq %>
+                                      </td>
+                                      <td>
+                                        <%= step.name.replace(/_/g, ' ' ) %>
+                                      </td>
+                                      <td><%- include('../partials/status-badge', { status: step.status }) %></td>
+                                    </tr>
+                                    <% }) %>
+                                </tbody>
+                              </table>
+                            </div>
 
-                                  <h2>Steps</h2>
-                                  <table>
-                                    <thead>
-                                      <tr>
-                                        <th>#</th>
-                                        <th>Step</th>
-                                        <th>Status</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      <% steps.forEach(function (step) { %>
-                                        <tr data-step="<%= step.seq %>">
-                                          <td>
-                                            <%= step.seq %>
-                                          </td>
-                                          <td>
-                                            <%= step.name.replace(/_/g, ' ' ) %>
-                                          </td>
-                                          <td><span class="status status-<%= step.status %>">
-                                              <%= step.status %>
-                                            </span></td>
-                                        </tr>
-                                        <% }) %>
-                                    </tbody>
-                                  </table>
+                            <h2 class="text-lg font-bold mb-2">Log</h2>
+                            <pre id="log"
+                              class="max-h-[400px] overflow-y-auto bg-neutral text-neutral-content p-4 text-sm"><%= existingLog %></pre>
 
-                                  <h2>Log</h2>
-                                  <pre id="log"
-                                    style="max-height: 400px; overflow-y: auto; background: var(--pico-code-background-color); padding: 1rem;"><%= existingLog %></pre>
-
-                                  <script>window.FORGE_DEPLOYMENT_ID = <%= deployment.id %>;</script>
-                                  <script src="/public/js/deployment.js"></script>
-                                  <script src="/public/js/component-search.js"></script>
-                                  <%- include('../partials/footer') %>
+                            <script>window.FORGE_DEPLOYMENT_ID = <%= deployment.id %>;</script>
+                            <script src="/public/js/deployment.js"></script>
+                            <script src="/public/js/component-search.js"></script>
+                            <%- include('../partials/footer') %>

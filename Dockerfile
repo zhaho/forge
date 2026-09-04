@@ -1,3 +1,12 @@
+FROM node:20-bookworm-slim AS assets
+
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY tailwind.config.js ./
+COPY src ./src
+RUN npm run build:css
+
 FROM node:20-bookworm-slim
 
 ARG TERRAFORM_VERSION=1.9.5
@@ -27,6 +36,7 @@ COPY package*.json ./
 RUN npm install --omit=dev
 
 COPY --chown=forge:forge . .
+COPY --from=assets --chown=forge:forge /app/src/public/css/tailwind.css /app/src/public/css/tailwind.css
 RUN chmod +x entrypoint.sh && chown -R forge:forge /home/forge
 
 ENV DATA_DIR=/app/data

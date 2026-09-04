@@ -6,15 +6,19 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "node --watch src/server.js",
+    "build:css": "tailwindcss -i ./src/public/css/tailwind-input.css -o ./src/public/css/tailwind.css --minify"
   },
   "dependencies": {
-    "@picocss/pico": "^2.0.6",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^11.3.0",
     "dotenv": "^16.4.5",
     "ejs": "^3.1.10",
     "express": "^4.19.2",
     "express-session": "^1.18.0"
+  },
+  "devDependencies": {
+    "daisyui": "^4.12.14",
+    "tailwindcss": "^3.4.14"
   }
 }

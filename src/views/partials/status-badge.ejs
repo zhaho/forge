@@ -1,0 +1,4 @@
+<% var statusBadgeClass={ success: 'badge-success' , failed: 'badge-error' , interrupted: 'badge-error' ,
+  running: 'badge-info' , queued: 'badge-info' , destroyed: 'badge-ghost' , pending: 'badge-ghost' }; %>
+  <span <% if (typeof id !=='undefined' ) { %>id="<%= id %>" <% } %>
+        class="status-badge badge rounded-none <%= statusBadgeClass[status] || 'badge-ghost' %>"><%= status %></span>

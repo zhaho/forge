@@ -1,70 +1,43 @@
 <%- include('partials/header') %>
-  <nav>
-    <ul>
-      <li><%- include('partials/brand') %></li>
-    </ul>
-    <ul>
-      <li><a href="/roles">Roles</a></li>
-      <li>
-        <div class="user-menu">
-          <span class="user-avatar">
-            <%= username.charAt(0).toUpperCase() %>
-          </span>
-          <span class="user-name">
-            <%= username %>
-          </span>
-          <form method="POST" action="/logout" class="logout-form">
-            <button type="submit" class="logout-btn" title="Logout" aria-label="Logout">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="none"
-                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                <polyline points="16 17 21 12 16 7" />
-                <line x1="21" y1="12" x2="9" y2="12" />
-              </svg>
-            </button>
-          </form>
-        </div>
-      </li>
-    </ul>
-  </nav>
-  <h1>Dashboard</h1>
-  <p><a href="/deployments/new" role="button" class="btn-sm">New deployment</a></p>
+  <%- include('partials/nav') %>
 
-  <% if (deployments.length===0) { %>
-    <p>No deployments yet.</p>
-    <% } else { %>
-      <% var active=deployments.filter(function (d) { return d.status !=='destroyed' ; }); %>
-        <% var destroyed=deployments.filter(function (d) { return d.status==='destroyed' ; }); %>
+    <h1 class="text-2xl font-bold mb-4">Dashboard</h1>
+    <p class="mb-4"><a href="/deployments/new" class="btn btn-primary btn-sm rounded-none">New deployment</a></p>
 
-          <% if (active.length===0) { %>
-            <p>No active deployments.</p>
-            <% } else { %>
-              <table class="deployments-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Nodes</th>
-                    <th>Created</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <% active.forEach(function (deployment) { %>
-                    <tr>
-                      <td><a href="/deployments/<%= deployment.id %>">
-                          <%= deployment.name %>
-                        </a></td>
-                      <td>
-                        <%= deployment.role_label %>
-                      </td>
-                      <td><span class="status status-<%= deployment.status %>">
-                          <%= deployment.status %>
-                        </span></td>
-                      <td>
-                        <% if (deployment.node_ips) { %>
-                          <%= deployment.node_ips.split(',').join(', ') %>
+    <% if (deployments.length===0) { %>
+      <p>No deployments yet.</p>
+      <% } else { %>
+        <% var active=deployments.filter(function (d) { return d.status !=='destroyed' ; }); %>
+          <% var destroyed=deployments.filter(function (d) { return d.status==='destroyed' ; }); %>
+
+            <% if (active.length===0) { %>
+              <p>No active deployments.</p>
+              <% } else { %>
+                <div class="overflow-x-auto mb-6">
+                  <table class="table">
+                    <thead>
+                      <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Nodes</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <% active.forEach(function (deployment) { %>
+                        <tr>
+                          <td><a class="link link-hover" href="/deployments/<%= deployment.id %>">
+                              <%= deployment.name %>
+                            </a></td>
+                          <td>
+                            <%= deployment.role_label %>
+                          </td>
+                          <td><%- include('partials/status-badge', { status: deployment.status }) %></td>
+                          <td>
+                            <% if (deployment.node_ips) { %>
+                              <%= deployment.node_ips.split(',').join(', ') %>
                           <% } else { %>
                             <em><%= deployment.node_count %> pending</em>
                             <% } %>
@@ -72,59 +45,60 @@
                       <td>
                         <%= deployment.created_at %>
                       </td>
-                      <td class="actions-cell">
+                      <td class="flex flex-wrap gap-2 whitespace-nowrap">
                         <% if (deployment.status===' failed' ) { %>
-                            <form method="POST" action="/deployments/<%= deployment.id %>/retry"
-                              data-loading-text="Retrying...">
-                              <button type="submit">Retry</button>
-                            </form>
-                            <% } %>
-                              <% if (['success', 'failed' ].includes(deployment.status)) { %>
-                                <form method="POST" action="/deployments/<%= deployment.id %>/destroy"
-                                  data-loading-text="Destroying..."
-                                  onsubmit="return confirm('Destroy all nodes in \'<%= deployment.name %>\'? This cannot be undone.');">
-                                  <button type="submit" class="contrast">Destroy</button>
+                                <form method="POST" action="/deployments/<%= deployment.id %>/retry"
+                                  data-loading-text="Retrying...">
+                                  <button type="submit" class="btn btn-sm rounded-none">Retry</button>
                                 </form>
                                 <% } %>
-                      </td>
-                    </tr>
-                    <% }) %>
-                </tbody>
-              </table>
-              <% } %>
-
-                <% if (destroyed.length> 0) { %>
-                  <details>
-                    <summary>Destroyed (<%= destroyed.length %>)</summary>
-                    <table class="deployments-table">
-                      <thead>
-                        <tr>
-                          <th>Name</th>
-                          <th>Role</th>
-                          <th>Status</th>
-                          <th>Created</th>
+                                  <% if (['success', 'failed' ].includes(deployment.status)) { %>
+                                    <form method="POST" action="/deployments/<%= deployment.id %>/destroy"
+                                      data-loading-text="Destroying..."
+                                      onsubmit="return confirm('Destroy all nodes in \'<%= deployment.name %>\'? This cannot be undone.');">
+                                      <button type="submit" class="btn btn-error btn-sm rounded-none">Destroy</button>
+                                    </form>
+                                    <% } %>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        <% destroyed.forEach(function (deployment) { %>
-                          <tr class="is-destroyed">
-                            <td><a href="/deployments/<%= deployment.id %>">
-                                <%= deployment.name %>
-                              </a></td>
-                            <td>
-                              <%= deployment.role_label %>
-                            </td>
-                            <td><span class="status status-<%= deployment.status %>">
-                                <%= deployment.status %>
-                              </span></td>
-                            <td>
-                              <%= deployment.created_at %>
-                            </td>
-                          </tr>
-                          <% }) %>
-                      </tbody>
-                    </table>
-                  </details>
-                  <% } %>
+                        <% }) %>
+                    </tbody>
+                  </table>
+                </div>
+                <% } %>
+
+                  <% if (destroyed.length> 0) { %>
+                    <details class="mb-6">
+                      <summary class="cursor-pointer font-semibold mb-2">Destroyed (<%= destroyed.length %>)</summary>
+                      <div class="overflow-x-auto">
+                        <table class="table">
+                          <thead>
+                            <tr>
+                              <th>Name</th>
+                              <th>Role</th>
+                              <th>Status</th>
+                              <th>Created</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <% destroyed.forEach(function (deployment) { %>
+                              <tr class="opacity-60">
+                                <td><a class="link link-hover" href="/deployments/<%= deployment.id %>">
+                                    <%= deployment.name %>
+                                  </a></td>
+                                <td>
+                                  <%= deployment.role_label %>
+                                </td>
+                                <td><%- include('partials/status-badge', { status: deployment.status }) %></td>
+                                <td>
+                                  <%= deployment.created_at %>
+                                </td>
+                              </tr>
+                              <% }) %>
+                          </tbody>
+                        </table>
+                      </div>
+                    </details>
                     <% } %>
-                      <%- include('partials/footer') %>
+                      <% } %>
+                        <%- include('partials/footer') %>

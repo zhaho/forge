@@ -123,7 +123,10 @@ read.
 ### npm (runtime)
 
 `express`, `express-session`, `ejs`, `better-sqlite3`, `bcryptjs`,
-`dotenv`, `@picocss/pico` (see [package.json](../package.json)).
+`dotenv` (see [package.json](../package.json)). `tailwindcss` and `daisyui`
+are devDependencies, compiled to a static `src/public/css/tailwind.css` in
+a build stage of the [Dockerfile](../Dockerfile) (`npm run build:css`) -
+not needed at runtime.
 
 ### System packages (Docker image)
 

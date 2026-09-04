@@ -1,23 +1,29 @@
 <%- include('partials/header') %>
-  <article style="max-width: 30rem; margin: 4rem auto;">
-    <img src="/public/img/logo-mark.svg" alt="Forge" class="brand-logo-big">
-    <p class="brand-text brand-text-big">FORGE</p>
-    <hgroup>
-      <p>Sign in</p>
-    </hgroup>
-    <% if (error) { %>
-      <p style="color: var(--pico-del-color);">
-        <%= error %>
-      </p>
-      <% } %>
-        <form method="POST" action="/login" class="form-compact">
-          <label for="username">Username
-            <input type="text" id="username" name="username" required autofocus>
-          </label>
-          <label for="password">Password
-            <input type="password" id="password" name="password" required>
-          </label>
-          <button type="submit" class="btn-sm">Log in</button>
-        </form>
-  </article>
+  <div class="card w-full max-w-md mx-auto mt-16 bg-base-200 shadow-lg">
+    <div class="card-body items-center text-center">
+      <img src="/public/img/logo-mark.svg" alt="Forge" class="w-1/2 max-w-[180px] mb-2">
+      <p
+        class="text-center text-6xl leading-none font-bold tracking-wider bg-gradient-to-br from-[#F7941D] to-[#ED1C24] bg-clip-text text-transparent mb-4">
+        FORGE</p>
+      <p class="text-base-content/70 -mt-2 mb-4">Sign in</p>
+      <% if (error) { %>
+        <p class="text-error text-sm">
+          <%= error %>
+        </p>
+        <% } %>
+          <form method="POST" action="/login" class="w-full flex flex-col gap-3 text-left">
+            <label class="form-control w-full">
+              <span class="label-text mb-1">Username</span>
+              <input type="text" id="username" name="username" class="input input-bordered rounded-none w-full" required
+                autofocus>
+            </label>
+            <label class="form-control w-full">
+              <span class="label-text mb-1">Password</span>
+              <input type="password" id="password" name="password" class="input input-bordered rounded-none w-full"
+                required>
+            </label>
+            <button type="submit" class="btn btn-primary btn-sm rounded-none mt-2">Log in</button>
+          </form>
+    </div>
+  </div>
   <%- include('partials/footer') %>

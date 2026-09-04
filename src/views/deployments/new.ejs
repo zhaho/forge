@@ -1,42 +1,40 @@
 <%- include('../partials/header') %>
-  <nav>
-    <ul>
-      <li><%- include('../partials/brand') %></li>
-    </ul>
-    <ul>
-      <li><a href="/roles">Roles</a></li>
-      <li><a href="/">&larr; Dashboard</a></li>
-    </ul>
-  </nav>
-  <h1>New deployment</h1>
-  <% if (error) { %>
-    <p style="color: var(--pico-del-color);">
-      <%= error %>
-    </p>
-    <% } %>
-      <form method="POST" action="/deployments" autocomplete="off" class="form-compact">
-        <label for="servername">Servername
-          <input type="text" id="servername" name="servername" value="<%= form.name %>" pattern="[a-z][a-z0-9-]{0,11}"
-            maxlength="12" placeholder="e.g. lab" required autofocus autocomplete="off" autocapitalize="off"
-            autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore
-            data-form-type="other">
-        </label>
-        <small>Nodes will be named <code>&lt;name&gt;01</code>, <code>&lt;name&gt;02</code>, ...</small>
+  <%- include('../partials/nav') %>
 
-        <label for="role">Role
-          <select id="role" name="role" required>
-            <option value="" disabled <%=form.roleKey ? '' : 'selected' %>>Choose a role</option>
-            <% roles.forEach(function (role) { %>
-              <option value="<%= role.key %>" <%=form.roleKey===role.key ? 'selected' : '' %>><%= role.label %>
-              </option>
-              <% }) %>
-          </select>
-        </label>
+    <h1 class="text-2xl font-bold mb-4">New deployment</h1>
+    <% if (error) { %>
+      <p class="text-error text-sm mb-4">
+        <%= error %>
+      </p>
+      <% } %>
+        <form method="POST" action="/deployments" autocomplete="off" class="flex flex-col gap-3 max-w-md">
+          <label class="form-control w-full">
+            <span class="label-text mb-1">Servername</span>
+            <input type="text" id="servername" name="servername" value="<%= form.name %>" pattern="[a-z][a-z0-9-]{0,11}"
+              maxlength="12" placeholder="e.g. lab" required autofocus autocomplete="off" autocapitalize="off"
+              autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore
+              data-form-type="other" class="input input-bordered rounded-none w-full">
+            <span class="label-text-alt mt-1 text-base-content/60">Nodes will be named <code>&lt;name&gt;01</code>,
+              <code>&lt;name&gt;02</code>, ...</span>
+          </label>
 
-        <label for="quantity">Quantity
-          <input type="number" id="quantity" name="quantity" value="<%= form.quantity %>" min="1" max="10" required>
-        </label>
+          <label class="form-control w-full">
+            <span class="label-text mb-1">Role</span>
+            <select id="role" name="role" required class="select select-bordered rounded-none w-full">
+              <option value="" disabled <%=form.roleKey ? '' : 'selected' %>>Choose a role</option>
+              <% roles.forEach(function (role) { %>
+                <option value="<%= role.key %>" <%=form.roleKey===role.key ? 'selected' : '' %>><%= role.label %>
+                </option>
+                <% }) %>
+            </select>
+          </label>
 
-        <button type="submit" class="btn-sm">Deploy</button>
-      </form>
-      <%- include('../partials/footer') %>
+          <label class="form-control w-full">
+            <span class="label-text mb-1">Quantity</span>
+            <input type="number" id="quantity" name="quantity" value="<%= form.quantity %>" min="1" max="10" required
+              class="input input-bordered rounded-none w-full">
+          </label>
+
+          <button type="submit" class="btn btn-primary btn-sm rounded-none w-fit">Deploy</button>
+        </form>
+        <%- include('../partials/footer') %>

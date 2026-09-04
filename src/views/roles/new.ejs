@@ -1,53 +1,52 @@
 <%- include('../partials/header') %>
-  <nav>
-    <ul>
-      <li><%- include('../partials/brand') %></li>
-    </ul>
-    <ul>
-      <li><a href="/roles">&larr; Roles</a></li>
-    </ul>
-  </nav>
-  <h1>New role</h1>
-  <% if (error) { %>
-    <p style="color: var(--pico-del-color);">
-      <%= error %>
-    </p>
-    <% } %>
-      <form method="POST" action="/roles" class="form-compact">
-        <label for="key">Key
-          <input type="text" id="key" name="key" value="<%= form.key %>" pattern="[a-z][a-z0-9-]{1,19}" maxlength="20"
-            placeholder="e.g. dev-box" required autofocus>
-        </label>
-        <small>Used internally and as the dropdown value; can't be changed later.</small>
+  <%- include('../partials/nav') %>
 
-        <label for="label">Label
-          <input type="text" id="label" name="label" value="<%= form.label %>" placeholder="e.g. Dev Box" required>
-        </label>
+    <h1 class="text-2xl font-bold mb-4">New role</h1>
+    <% if (error) { %>
+      <p class="text-error text-sm mb-4">
+        <%= error %>
+      </p>
+      <% } %>
+        <form method="POST" action="/roles" class="flex flex-col gap-3 max-w-xl">
+          <label class="form-control w-full">
+            <span class="label-text mb-1">Key</span>
+            <input type="text" id="key" name="key" value="<%= form.key %>" pattern="[a-z][a-z0-9-]{1,19}" maxlength="20"
+              placeholder="e.g. dev-box" required autofocus class="input input-bordered rounded-none w-full">
+            <span class="label-text-alt mt-1 text-base-content/60">Used internally and as the dropdown value; can't be
+              changed later.</span>
+          </label>
 
-        <fieldset>
-          <legend>Components</legend>
-          <ul class="component-checklist">
-            <% components.forEach(function (component) { %>
-              <li>
-                <label>
-                  <input type="checkbox" name="componentIds" value="<%= component.id %>"
-                    <%=form.componentIds.includes(component.id) ? 'checked' : '' %>>
-                  <span class="package-info">
-                    <span class="package-name">
-                      <%= component.label %>
+          <label class="form-control w-full">
+            <span class="label-text mb-1">Label</span>
+            <input type="text" id="label" name="label" value="<%= form.label %>" placeholder="e.g. Dev Box" required
+              class="input input-bordered rounded-none w-full">
+          </label>
+
+          <fieldset class="border border-base-300 rounded-none p-3">
+            <legend class="px-2 font-semibold">Components</legend>
+            <ul class="divide-y divide-base-300 border border-base-300">
+              <% components.forEach(function (component) { %>
+                <li>
+                  <label class="flex items-center gap-3 w-full p-3 cursor-pointer hover:bg-base-200">
+                    <input type="checkbox" name="componentIds" value="<%= component.id %>"
+                      <%=form.componentIds.includes(component.id) ? 'checked' : '' %> class="checkbox checkbox-sm
+                    rounded-none">
+                    <span class="flex flex-col gap-0.5">
+                      <span class="font-semibold">
+                        <%= component.label %>
+                      </span>
+                      <% if (component.description) { %>
+                        <span class="text-sm text-base-content/60">
+                          <%= component.description %>
+                        </span>
+                        <% } %>
                     </span>
-                    <% if (component.description) { %>
-                      <small class="package-desc">
-                        <%= component.description %>
-                      </small>
-                      <% } %>
-                  </span>
-                </label>
-              </li>
-              <% }) %>
-          </ul>
-        </fieldset>
+                  </label>
+                </li>
+                <% }) %>
+            </ul>
+          </fieldset>
 
-        <button type="submit" class="btn-sm">Create role</button>
-      </form>
-      <%- include('../partials/footer') %>
+          <button type="submit" class="btn btn-primary btn-sm rounded-none w-fit">Create role</button>
+        </form>
+        <%- include('../partials/footer') %>

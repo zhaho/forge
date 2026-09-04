@@ -7,7 +7,7 @@ to be answered before/while building later phases.
 
 | Area | Decision |
 |---|---|
-| Frontend | Server-rendered EJS + HTMX (no SPA build step) |
+| Frontend | Server-rendered EJS (no SPA build step); Tailwind CSS + daisyUI for styling, compiled to a static CSS file at Docker build time (superseded Pico.css, 2026-09-04) |
 | Live updates | Server-Sent Events (SSE) |
 | Terraform workdir | Forge owns its own working directory per deployment (not `terraform-deployment/environments`) |
 | Terraform module source | Vendor/copy `proxmox-vm` module into the `forge` repo |

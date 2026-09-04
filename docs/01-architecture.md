@@ -6,7 +6,8 @@
 |---|---|---|
 | Runtime | Node.js (LTS) | matches the requested stack |
 | Web framework | Express | simple, well understood, no build step needed |
-| Views | EJS (server-rendered) + HTMX | lightweight, no SPA build pipeline, pairs naturally with SSE for live logs |
+| Views | EJS (server-rendered) | lightweight, no SPA build pipeline; live logs use plain SSE client JS, not a client framework |
+| Styling | Tailwind CSS + daisyUI, compiled at Docker build time | modern component styling (navbar, dropdown, badges, forms) without an SPA; small, one-time CSS build step (`npm run build:css`), not a bundler/router |
 | DB | SQLite (`better-sqlite3`) | single-file, zero-ops, fine for a single-host home-lab tool |
 | Auth | `express-session` (SQLite-backed store) + `bcrypt` password hashing | simple cookie session, single admin account |
 | Live updates | Server-Sent Events (SSE) | one-way server→browser stream, trivial over plain HTTP, no extra infra |

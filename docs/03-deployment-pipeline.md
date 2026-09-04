@@ -7,6 +7,65 @@ in the GUI. Any step can be individually **retried**, which re-runs that
 step and all steps after it (previous steps' results — like allocated IPs
 or Terraform state — are reused, not redone).
 
+## How a deployment actually runs (services involved)
+
+There is no separate worker process/queue service — the pipeline is a
+plain async function (`runDeployment(deploymentId)` in
+[src/jobs/pipeline.js](../src/jobs/pipeline.js)) that runs **inside the
+same Express/Node process** that serves the GUI. It's invoked directly
+from the route handler when a deployment is created or retried
+(`src/routes/deployments.js`), not queued to an external broker.
+
+1. **Trigger**: `POST /deployments` (or `/retry`, `/reinstall`, etc.)
+   inserts/updates `steps` rows, sets the deployment to `queued`, then
+   calls `queue.add(() => pipeline.runDeployment(id))`
+   ([src/jobs/queue.js](../src/jobs/queue.js)) — a tiny in-process job
+   queue, not an external broker. The HTTP request returns immediately
+   (redirect to the deployment's show page).
+2. **Queue/concurrency gate**: the queue holds a simple `pending` array
+   and an `active` counter capped at `MAX_CONCURRENT_DEPLOYMENTS`
+   (default 3). Adding a job runs it immediately if under the cap,
+   otherwise it waits until an active job finishes and frees a slot —
+   this *is* enforced, not just documentation of intended capacity.
+3. **Step dispatch**: once a job is running, `runDeployment` loads all
+   `pending` steps for that deployment in `seq` order and, for each one,
+   looks up its runner in the `STEP_RUNNERS` map (`allocate_ips` →
+   `runAllocateIps`, `terraform_apply` → `runTerraformApply`, etc.) and
+   awaits it before moving to the next step — this is what makes steps
+   *within* one deployment strictly sequential.
+4. **Process execution**: steps that shell out (Terraform, Ansible, SSH)
+   go through a shared `runCommand()` helper
+   ([src/terraform/executor.js](../src/terraform/executor.js)) that
+   wraps Node's `child_process.spawn`. It:
+   - runs the command with `cwd` set to the deployment's own
+     `data/workdirs/<id>/` directory,
+   - merges in step-specific env vars (e.g. `TF_VAR_*` secrets for
+     Terraform, `ANSIBLE_CONFIG`/`ANSIBLE_ROLES_PATH` for Ansible),
+   - strips ANSI escape codes from stdout/stderr,
+   - streams every line to two places simultaneously: appended to the
+     step's log file (`data/logs/<id>/<seq>-<name>.log`) and emitted as
+     an SSE event so the browser sees it live,
+   - rejects the returned promise (throwing) if the process exits
+     non-zero, which is what stops the pipeline on failure.
+4. **Live updates**: each step emits `{type: 'step', ...}` /
+   `{type: 'log', ...}` events through a small per-deployment
+   `EventEmitter` ([src/jobs/events.js](../src/jobs/events.js)). The
+   `GET /deployments/:id/events` route subscribes the browser to that
+   emitter via Server-Sent Events — no polling.
+5. **Because it's in-process**: if the Forge container is killed/restarted
+   mid-step (e.g. a `docker compose up -d --build`), the `ansible-playbook`
+   or `terraform` child process dies with it. On next boot,
+   `src/db/index.js` marks any step/deployment that was left `running` as
+   `interrupted`/`failed` so it's visibly flagged rather than silently
+   stuck, and it can be retried from the GUI.
+6. **Concurrency**: the queue lets up to `MAX_CONCURRENT_DEPLOYMENTS`
+   deployments' `runDeployment()` calls be in flight at once (each awaits
+   its own chain independently on the shared event loop — Node interleaves
+   them since the actual work is spawned child processes, not CPU-bound
+   work in the Node process itself); any beyond that cap sit in the
+   queue's `pending` array until a slot frees up. Steps *within* a single
+   deployment are still always sequential (see above).
+
 ## Create pipeline
 
 | # | Step | What happens | Idempotent re-run behaviour |

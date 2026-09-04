@@ -12,7 +12,6 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 app.use(express.urlencoded({ extended: false }));
-app.use('/vendor/pico', express.static(path.join(__dirname, '../node_modules/@picocss/pico/css')));
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
 app.use(session({
@@ -22,10 +21,17 @@ app.use(session({
   cookie: { httpOnly: true, sameSite: 'lax' },
 }));
 
+// Make the logged-in username available to every view (e.g. the navbar's
+// user menu) without every route having to pass it explicitly.
+app.use((req, res, next) => {
+  res.locals.username = req.session.username;
+  next();
+});
+
 // First-run gate: no admin account yet -> everything redirects to /register.
 // Once an admin exists, /register is disabled and redirects to /login.
 app.use((req, res, next) => {
-  if (req.path.startsWith('/vendor') || req.path.startsWith('/public')) return next();
+  if (req.path.startsWith('/public')) return next();
 
   const adminExists = hasAdminUser();
   if (!adminExists && req.path !== '/register') return res.redirect('/register');
