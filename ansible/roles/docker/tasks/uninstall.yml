@@ -1,0 +1,36 @@
+---
+- name: "docker | map architecture to Docker's apt naming (uninstall)"
+  set_fact:
+    docker_apt_arch: "{{ {'x86_64': 'amd64', 'aarch64': 'arm64', 'armv7l': 'armhf'}[ansible_architecture] | default('amd64') }}"
+
+- name: "docker | stop and disable docker service"
+  ansible.builtin.service:
+    name: docker
+    state: stopped
+    enabled: false
+  ignore_errors: true
+
+- name: "docker | uninstall docker packages"
+  package:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: absent
+
+- name: "docker | remove docker apt repository"
+  ansible.builtin.apt_repository:
+    repo: "deb [arch={{ docker_apt_arch }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/{{ ansible_distribution | lower }} {{ ansible_distribution_release }} stable"
+    filename: docker
+    state: absent
+
+- name: "docker | remove Docker's GPG key"
+  ansible.builtin.file:
+    path: /etc/apt/keyrings/docker.asc
+    state: absent
+
+# Deliberately leaves /var/lib/docker (containers, images, volumes) and the
+# deploy user's docker group membership alone - only removes what this role
+# installed, not the user's own data.

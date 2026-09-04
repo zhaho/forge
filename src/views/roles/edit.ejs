@@ -12,11 +12,11 @@
           <label class="form-control w-full">
             <span class="label-text mb-1">Label</span>
             <input type="text" id="label" name="label" value="<%= form.label %>" required autofocus
-              class="input input-bordered rounded-none w-full">
+              class="input input-bordered rounded-sm w-full">
             <span class="label-text-alt mt-1 text-base-content/60">Key: <code><%= role.key %></code> (fixed)</span>
           </label>
 
-          <fieldset class="border border-base-300 rounded-none p-3">
+          <fieldset class="border border-base-300 rounded-sm p-3">
             <legend class="px-2 font-semibold">Components</legend>
             <ul class="divide-y divide-base-300 border border-base-300">
               <% components.forEach(function (component) { %>
@@ -24,7 +24,7 @@
                   <label class="flex items-center gap-3 w-full p-3 cursor-pointer hover:bg-base-200">
                     <input type="checkbox" name="componentIds" value="<%= component.id %>"
                       <%=form.componentIds.includes(component.id) ? 'checked' : '' %> class="checkbox checkbox-sm
-                    rounded-none">
+                    rounded-sm">
                     <span class="flex flex-col gap-0.5">
                       <span class="font-semibold">
                         <%= component.label %>
@@ -41,6 +41,6 @@
             </ul>
           </fieldset>
 
-          <button type="submit" class="btn btn-primary btn-sm rounded-none w-fit">Save changes</button>
+          <button type="submit" class="btn btn-primary btn-sm rounded-sm w-fit">Save changes</button>
         </form>
         <%- include('../partials/footer') %>

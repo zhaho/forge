@@ -8,5 +8,77 @@
    bumping the root font-size scales spacing/buttons/text together, not
    just text. 16px * 1.4 = 22.4px. Login/register keep the default 16px. */
 html:has(.navbar) {
-  font-size: 22.4px;
+   font-size: 22.4px;
+}
+
+/* daisyUI's .steps sets overflow:hidden/overflow-x:auto (for horizontally
+   scrolling the default variant), which clips anything painted outside a
+   marker's own box - including its ring below - right at the left edge,
+   since the list has no padding there. The vertical variant doesn't need
+   that scrolling, so let it paint outside its bounds instead. */
+.steps.steps-vertical {
+   overflow: visible;
+}
+
+/* daisyUI renders step markers as circles (border-radius:9999px), which is
+   where the edge-visibility problems keep showing up. Use small rounded
+   boxes instead - straight edges are unambiguous and match the app's
+   rounded-sm styling elsewhere - and give every marker a visible ring since
+   its fill color is otherwise close to the surrounding card background. */
+.steps .step:before {
+   z-index: 0;
+}
+
+.steps .step:after {
+   position: relative;
+   z-index: 1;
+   border-radius: 0.25rem;
+   box-shadow: 0 0 0 1px oklch(var(--bc) / 0.25);
+}
+
+/* Active/running step: pulse an outward ring instead of animating opacity -
+   animating the circle's opacity let the connecting line "bleed through"
+   the number, looking like it tunneled through the circle. */
+@keyframes step-active-ping {
+   0% {
+      box-shadow: 0 0 0 1px oklch(var(--bc) / 0.25), 0 0 0 0 oklch(var(--in) / 0.6);
+   }
+
+   70% {
+      box-shadow: 0 0 0 1px oklch(var(--bc) / 0.25), 0 0 0 0.5rem oklch(var(--in) / 0);
+   }
+
+   100% {
+      box-shadow: 0 0 0 1px oklch(var(--bc) / 0.25), 0 0 0 0.5rem oklch(var(--in) / 0);
+   }
+}
+
+.step-active-pulse:after {
+   animation: step-active-ping 1.5s ease-out infinite;
+}
+
+/* Determinate deployment progress bar - a moving diagonal stripe overlay
+   signals "actively working" without the native indeterminate back-and-forth
+   sweep, while the bar's width still reflects real step completion. */
+@keyframes steps-progress-stripes {
+   from {
+      background-position: 1rem 0;
+   }
+
+   to {
+      background-position: 0 0;
+   }
+}
+
+.steps-progress-active {
+   background-image: linear-gradient(45deg,
+         oklch(var(--inc) / 0.35) 25%,
+         transparent 25%,
+         transparent 50%,
+         oklch(var(--inc) / 0.35) 50%,
+         oklch(var(--inc) / 0.35) 75%,
+         transparent 75%,
+         transparent);
+   background-size: 1rem 1rem;
+   animation: steps-progress-stripes 1s linear infinite;
 }

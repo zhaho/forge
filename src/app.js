@@ -21,10 +21,12 @@ app.use(session({
   cookie: { httpOnly: true, sameSite: 'lax' },
 }));
 
-// Make the logged-in username available to every view (e.g. the navbar's
-// user menu) without every route having to pass it explicitly.
+// Make the logged-in username and current path available to every view
+// (navbar's user menu + active nav button highlighting) without every
+// route having to pass them explicitly.
 app.use((req, res, next) => {
   res.locals.username = req.session.username;
+  res.locals.currentPath = req.path;
   next();
 });
 

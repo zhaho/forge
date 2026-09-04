@@ -92,7 +92,8 @@ UPDATE roles SET playbook_path = 'k3s-cluster.yml' WHERE key = 'k3s-cluster' AND
 INSERT OR IGNORE INTO components (key, label, description, ansible_role) VALUES
   ('oh-my-zsh', 'Oh My Zsh', 'Installs zsh + Oh My Zsh for the deploy user.', 'oh-my-zsh'),
   ('btop', 'btop', 'Installs the btop system monitor.', 'btop'),
-  ('telegraf', 'Telegraf', 'Installs and starts the Telegraf metrics agent.', 'telegraf');
+  ('telegraf', 'Telegraf', 'Installs and starts the Telegraf metrics agent.', 'telegraf'),
+  ('docker', 'Docker', 'Installs Docker Engine, CLI and the Docker Compose plugin.', 'docker');
 
 INSERT OR IGNORE INTO role_components (role_id, component_id)
   SELECT r.id, c.id FROM roles r, components c WHERE r.key IN ('lab', 'mgmt') AND c.key = 'oh-my-zsh';

@@ -13,14 +13,14 @@
             <input type="text" id="servername" name="servername" value="<%= form.name %>" pattern="[a-z][a-z0-9-]{0,11}"
               maxlength="12" placeholder="e.g. lab" required autofocus autocomplete="off" autocapitalize="off"
               autocorrect="off" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore
-              data-form-type="other" class="input input-bordered rounded-none w-full">
+              data-form-type="other" class="input input-bordered rounded-sm w-full">
             <span class="label-text-alt mt-1 text-base-content/60">Nodes will be named <code>&lt;name&gt;01</code>,
               <code>&lt;name&gt;02</code>, ...</span>
           </label>
 
           <label class="form-control w-full">
             <span class="label-text mb-1">Role</span>
-            <select id="role" name="role" required class="select select-bordered rounded-none w-full">
+            <select id="role" name="role" required class="select select-bordered rounded-sm w-full">
               <option value="" disabled <%=form.roleKey ? '' : 'selected' %>>Choose a role</option>
               <% roles.forEach(function (role) { %>
                 <option value="<%= role.key %>" <%=form.roleKey===role.key ? 'selected' : '' %>><%= role.label %>
@@ -32,9 +32,9 @@
           <label class="form-control w-full">
             <span class="label-text mb-1">Quantity</span>
             <input type="number" id="quantity" name="quantity" value="<%= form.quantity %>" min="1" max="10" required
-              class="input input-bordered rounded-none w-full">
+              class="input input-bordered rounded-sm w-full">
           </label>
 
-          <button type="submit" class="btn btn-primary btn-sm rounded-none w-fit">Deploy</button>
+          <button type="submit" class="btn btn-primary btn-sm rounded-sm w-fit">Deploy</button>
         </form>
         <%- include('../partials/footer') %>

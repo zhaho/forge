@@ -2,7 +2,7 @@
   <%- include('partials/nav') %>
 
     <h1 class="text-2xl font-bold mb-4">Dashboard</h1>
-    <p class="mb-4"><a href="/deployments/new" class="btn btn-primary btn-sm rounded-none">New deployment</a></p>
+    <p class="mb-4"><a href="/deployments/new" class="btn btn-primary btn-sm rounded-sm">New deployment</a></p>
 
     <% if (deployments.length===0) { %>
       <p>No deployments yet.</p>
@@ -49,14 +49,14 @@
                         <% if (deployment.status===' failed' ) { %>
                                 <form method="POST" action="/deployments/<%= deployment.id %>/retry"
                                   data-loading-text="Retrying...">
-                                  <button type="submit" class="btn btn-sm rounded-none">Retry</button>
+                                  <button type="submit" class="btn btn-sm rounded-sm">Retry</button>
                                 </form>
                                 <% } %>
                                   <% if (['success', 'failed' ].includes(deployment.status)) { %>
                                     <form method="POST" action="/deployments/<%= deployment.id %>/destroy"
                                       data-loading-text="Destroying..."
                                       onsubmit="return confirm('Destroy all nodes in \'<%= deployment.name %>\'? This cannot be undone.');">
-                                      <button type="submit" class="btn btn-error btn-sm rounded-none">Destroy</button>
+                                      <button type="submit" class="btn btn-error btn-sm rounded-sm">Destroy</button>
                                     </form>
                                     <% } %>
                           </td>
