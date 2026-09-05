@@ -3,6 +3,7 @@ const fs = require('fs');
 const express = require('express');
 const { requireAuth } = require('../middleware/auth');
 const repo = require('../db/deployments');
+const imagesRepo = require('../db/images');
 const config = require('../config');
 const queue = require('../jobs/queue');
 const pipeline = require('../jobs/pipeline');
@@ -49,30 +50,47 @@ function getComponentInstallStatus(steps, componentId) {
 router.get('/deployments/new', requireAuth, (req, res) => {
   res.render('deployments/new', {
     roles: repo.listRoles(),
+    images: imagesRepo.listAvailableImages(),
     error: null,
-    form: { name: '', roleKey: '', quantity: 1 },
+    form: { name: '', roleKey: '', quantity: 1, imageId: '' },
   });
 });
 
 router.post('/deployments', requireAuth, (req, res) => {
-  const { servername: name, role, quantity } = req.body;
+  const { servername: name, role, quantity, imageId } = req.body;
   const roles = repo.listRoles();
+  const images = imagesRepo.listAvailableImages();
   const roleRow = repo.getRoleByKey(role);
   const qty = parseInt(quantity, 10);
-  const form = { name, roleKey: role, quantity };
+  const form = { name, roleKey: role, quantity, imageId };
 
   if (!NAME_PATTERN.test(name || '')) {
     return res.render('deployments/new', {
       roles,
+      images,
       form,
       error: 'Name must start with a letter and contain only lowercase letters, numbers, or hyphens (max 12 characters).',
     });
   }
   if (!roleRow) {
-    return res.render('deployments/new', { roles, form, error: 'Please choose a valid role.' });
+    return res.render('deployments/new', { roles, images, form, error: 'Please choose a valid role.' });
   }
   if (!Number.isInteger(qty) || qty < 1 || qty > 10) {
-    return res.render('deployments/new', { roles, form, error: 'Quantity must be between 1 and 10.' });
+    return res.render('deployments/new', { roles, images, form, error: 'Quantity must be between 1 and 10.' });
+  }
+
+  let selectedImageId = null;
+  let templateId = config.proxmox.templateId;
+  if (imageId) {
+    const image = imagesRepo.getImage(imageId);
+    if (!image || image.status !== 'success') {
+      return res.render('deployments/new', { roles, images, form, error: 'Please choose a valid, successfully-built image.' });
+    }
+    selectedImageId = image.id;
+    templateId = image.vm_id;
+  } else if (roleRow.default_image_id) {
+    const image = imagesRepo.getImage(roleRow.default_image_id);
+    if (image && image.status === 'success') templateId = image.vm_id;
   }
 
   const deploymentId = repo.createDeployment({
@@ -80,6 +98,8 @@ router.post('/deployments', requireAuth, (req, res) => {
     roleId: roleRow.id,
     quantity: qty,
     targetNode: config.proxmox.targetNode,
+    imageId: selectedImageId,
+    templateId,
   });
 
   const workdirPath = path.join(config.dataDir, 'workdirs', String(deploymentId));
@@ -208,6 +228,7 @@ router.get('/deployments/:id', requireAuth, (req, res) => {
     deployment: {
       ...deployment,
       started_at: formatTimestamp(timing.started_at),
+      started_at_raw: timing.started_at,
       finished_at: formatTimestamp(timing.finished_at),
       duration: formatDuration(timing.started_at, timing.finished_at),
     },

@@ -150,7 +150,10 @@ function sshArgs(node) {
     '-i',
     config.ssh.privateKeyPath,
     `${config.ssh.user}@${node.ip}`,
-    'cloud-init status --wait',
+    // cloud-init status --wait exits 2 for "degraded done" (recoverable errors
+    // only, e.g. Proxmox's ciuser field triggering a harmless deprecation
+    // warning) - only exit 1 (real failure) should count as not-ready.
+    'cloud-init status --wait; ec=$?; [ "$ec" -eq 0 ] || [ "$ec" -eq 2 ]',
   ];
 }
 

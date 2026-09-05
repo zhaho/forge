@@ -16,6 +16,20 @@
             <span class="label-text-alt mt-1 text-base-content/60">Key: <code><%= role.key %></code> (fixed)</span>
           </label>
 
+          <label class="form-control w-full">
+            <span class="label-text mb-1">Default image</span>
+            <select id="defaultImageId" name="defaultImageId" class="select select-bordered rounded-sm w-full">
+              <option value="">Use global template (PROXMOX_TEMPLATE_ID)</option>
+              <% images.forEach(function (image) { %>
+                <option value="<%= image.id %>" <%=String(form.defaultImageId)===String(image.id) ? 'selected' : '' %>>
+                  <%= image.name %> (VMID <%= image.vm_id %>)
+                </option>
+                <% }) %>
+            </select>
+            <span class="label-text-alt mt-1 text-base-content/60">Template new deployments of this role clone from,
+              unless overridden per-deployment.</span>
+          </label>
+
           <fieldset class="border border-base-300 rounded-sm p-3">
             <legend class="px-2 font-semibold">Components</legend>
             <ul class="divide-y divide-base-300 border border-base-300">

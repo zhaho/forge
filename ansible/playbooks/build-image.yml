@@ -1,0 +1,92 @@
+---
+# Builds a Proxmox VM template (cloud image + qemu-guest-agent + cloud-init
+# defaults) from a downloadable cloud image, ready to be cloned by Forge
+# deployments. Adapted from ansible-proxmox-deploy's build_image role.
+- name: Build Proxmox VM template
+  hosts: proxmox
+  vars:
+    image_name: "forge-image-{{ vm_id }}.img"
+    image_dir: "/var/lib/vz/template/iso/"
+    image_dl_dest: "/tmp/"
+
+  tasks:
+    - name: Download the cloud image
+      get_url:
+        url: "{{ image_url }}"
+        dest: "{{ image_dl_dest }}{{ image_name }}"
+
+    - name: Create a new VM
+      command: >
+        qm create {{ vm_id }} --name "{{ vm_name }}" --memory {{ vm_memory }}
+        --net0 virtio,bridge={{ vm_network_bridge }}
+
+    - name: Prepare the image for templating
+      command: >
+        virt-customize -a {{ image_dl_dest }}{{ image_name }}
+        --install qemu-guest-agent
+        --run-command 'cloud-init clean --logs --seed'
+        --run-command 'rm -f /etc/udev/rules.d/70-persistent-net.rules /etc/udev/rules.d/70-persistent-cd.rules'
+        --run-command 'echo "PasswordAuthentication yes" > /etc/ssh/sshd_config.d/60-cloudimg-settings.conf'
+        --truncate /etc/machine-id
+
+    - name: Move the image into the Proxmox image directory
+      command: mv {{ image_dl_dest }}{{ image_name }} {{ image_dir }}{{ image_name }}
+
+    - name: Import the disk into the VM
+      command: qm importdisk {{ vm_id }} {{ image_dir }}{{ image_name }} {{ vm_datastore }}
+
+    - name: Attach the imported disk over virtio-scsi
+      command: >
+        qm set {{ vm_id }} --scsihw virtio-scsi-pci --scsi0 {{ vm_datastore }}:vm-{{ vm_id }}-disk-0
+
+    - name: Resize the disk
+      command: qm resize {{ vm_id }} scsi0 {{ vm_disksize }}
+
+    - name: Add the cloud-init drive
+      command: qm set {{ vm_id }} --ide2 {{ vm_datastore }}:cloudinit
+
+    - name: Set boot options
+      command: qm set {{ vm_id }} --boot c --bootdisk scsi0
+
+    - name: Configure the serial console
+      command: qm set {{ vm_id }} --serial0 socket --vga serial0
+
+    - name: Enable the QEMU guest agent
+      command: qm set {{ vm_id }} --agent enabled=1
+
+    - name: Set the cloud-init default user
+      command: qm set {{ vm_id }} --ciuser "{{ ci_user }}"
+
+    - name: Set the cloud-init default password
+      command: qm set {{ vm_id }} --cipassword "{{ ci_password }}"
+      when: ci_password is defined and ci_password | length > 0
+      no_log: true
+
+    - name: Write the SSH public key to a temporary file
+      tempfile:
+        state: file
+        suffix: ".pub"
+      register: ssh_key_file
+
+    - name: Populate the SSH public key file
+      copy:
+        content: "{{ ssh_public_key }}"
+        dest: "{{ ssh_key_file.path }}"
+        mode: "0600"
+
+    - name: Set the cloud-init SSH key
+      command: qm set {{ vm_id }} --sshkeys {{ ssh_key_file.path }}
+
+    - name: Clean up the temporary SSH key file
+      file:
+        path: "{{ ssh_key_file.path }}"
+        state: absent
+
+    - name: Set cloud-init package upgrade on first boot
+      command: qm set {{ vm_id }} --ciupgrade {{ ci_upgrade }}
+
+    - name: Set cloud-init network config
+      command: qm set {{ vm_id }} --ipconfig0 {{ ci_ipconfig }}
+
+    - name: Convert the VM to a template
+      command: qm template {{ vm_id }}

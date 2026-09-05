@@ -5,6 +5,7 @@ const { router: authRouter, hasAdminUser } = require('./routes/auth');
 const dashboardRouter = require('./routes/dashboard');
 const deploymentsRouter = require('./routes/deployments');
 const rolesRouter = require('./routes/roles');
+const imagesRouter = require('./routes/images');
 
 const app = express();
 
@@ -45,5 +46,6 @@ app.use('/', authRouter);
 app.use('/', dashboardRouter);
 app.use('/', deploymentsRouter);
 app.use('/', rolesRouter);
+app.use('/', imagesRouter);
 
 module.exports = app;

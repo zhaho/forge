@@ -159,5 +159,8 @@
                           </div>
                         </div>
                         <% } %>
-                          <% } %>
-                            <%- include('partials/footer') %>
+                          <% if (active.some(function (d) { return ['running', 'queued' ].includes(d.status); })) { %>
+                            <script>window.setTimeout(function () { location.reload(); }, 5000);</script>
+                            <% } %>
+                              <% } %>
+                                <%- include('partials/footer') %>

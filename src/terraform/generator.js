@@ -71,7 +71,7 @@ module "vms" {
   vm_static_ip      = each.value.static_ip
   vm_gateway        = each.value.gateway
   vm_datastore      = "${config.proxmox.datastore}"
-  template_id       = ${config.proxmox.templateId}
+  template_id       = ${deployment.template_id}
 
   enable_ipam      = ${config.ipam.enabled}
   ipam_url         = "${config.ipam.url}"

@@ -1,6 +1,6 @@
 (function () {
-  var deploymentId = window.FORGE_DEPLOYMENT_ID;
-  if (!deploymentId) return;
+  var imageId = window.FORGE_IMAGE_ID;
+  if (!imageId) return;
 
   // Keep in sync with src/views/partials/status-badge.ejs
   var STATUS_BADGE_CLASS = {
@@ -21,7 +21,7 @@
     );
   }
 
-  // Keep in sync with the stepDotClass map in deployments/show.ejs
+  // Keep in sync with the stepDotClass map in images/show.ejs
   var STEP_DOT_CLASS = {
     success: 'step-success',
     failed: 'step-error',
@@ -30,7 +30,7 @@
     queued: 'step-info',
   };
 
-  // Keep in sync with the stepAnimClass map in deployments/show.ejs
+  // Keep in sync with the stepAnimClass map in images/show.ejs
   var STEP_ANIM_CLASS = {
     running: 'step-active-pulse',
   };
@@ -58,11 +58,8 @@
     return parts.join(' ');
   }
 
-  // Ticks a live "Running for Xm Ys" counter while a deployment is in
-  // progress. startedAtMs is set either from the server's started_at (if the
-  // page was loaded/reloaded mid-run) or from the moment we first see a step
-  // go 'running' over SSE (if the page was open before the deployment started).
-  var startedAtRaw = window.FORGE_DEPLOYMENT_STARTED_AT;
+  // Ticks a live "Running for Xm Ys" counter while a build is in progress.
+  var startedAtRaw = window.FORGE_IMAGE_STARTED_AT;
   var startedAtMs = startedAtRaw ? new Date(startedAtRaw.replace(' ', 'T') + 'Z').getTime() : null;
   var elapsedInterval = null;
 
@@ -88,7 +85,7 @@
   if (startedAtMs !== null) startElapsedTimer();
 
   var logEl = document.getElementById('log');
-  var source = new EventSource('/deployments/' + deploymentId + '/events');
+  var source = new EventSource('/images/' + imageId + '/events');
 
   source.onmessage = function (event) {
     var msg = JSON.parse(event.data);
@@ -119,11 +116,11 @@
         startedAtMs = Date.now();
         startElapsedTimer();
       }
-    } else if (msg.type === 'deployment') {
-      var deploymentStatusEl = document.getElementById('deployment-status');
-      if (deploymentStatusEl) {
-        deploymentStatusEl.textContent = msg.status;
-        deploymentStatusEl.className = badgeClassFor(msg.status);
+    } else if (msg.type === 'image') {
+      var imageStatusEl = document.getElementById('image-status');
+      if (imageStatusEl) {
+        imageStatusEl.textContent = msg.status;
+        imageStatusEl.className = badgeClassFor(msg.status);
       }
       var progressTrackEl = document.getElementById('steps-progress-track');
       if (progressTrackEl) {
@@ -141,4 +138,3 @@
     }
   };
 })();
-

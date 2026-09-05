@@ -22,10 +22,10 @@ function getRoleById(id) {
   return db.prepare('SELECT * FROM roles WHERE id = ?').get(id);
 }
 
-function createDeployment({ name, roleId, quantity, targetNode }) {
+function createDeployment({ name, roleId, quantity, targetNode, imageId, templateId }) {
   const info = db
-    .prepare('INSERT INTO deployments (name, role_id, quantity, target_node) VALUES (?, ?, ?, ?)')
-    .run(name, roleId, quantity, targetNode);
+    .prepare('INSERT INTO deployments (name, role_id, quantity, target_node, image_id, template_id) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(name, roleId, quantity, targetNode, imageId || null, templateId);
   return info.lastInsertRowid;
 }
 
@@ -191,6 +191,10 @@ function updateRoleLabel(id, label) {
   db.prepare('UPDATE roles SET label = ? WHERE id = ?').run(label, id);
 }
 
+function setRoleDefaultImage(id, imageId) {
+  db.prepare('UPDATE roles SET default_image_id = ? WHERE id = ?').run(imageId || null, id);
+}
+
 function setRoleComponents(roleId, componentIds) {
   const deleteExisting = db.prepare('DELETE FROM role_components WHERE role_id = ?');
   const insert = db.prepare('INSERT INTO role_components (role_id, component_id) VALUES (?, ?)');
@@ -268,6 +272,7 @@ module.exports = {
   getComponentsForRole,
   createRole,
   updateRoleLabel,
+  setRoleDefaultImage,
   setRoleComponents,
   getDeploymentComponents,
   seedDeploymentComponentsFromRole,

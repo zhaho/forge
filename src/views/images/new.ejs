@@ -1,0 +1,30 @@
+<%- include('../partials/header') %>
+  <%- include('../partials/nav') %>
+
+    <h1 class="text-2xl font-bold mb-4">New image</h1>
+    <% if (error) { %>
+      <p class="text-error text-sm mb-4">
+        <%= error %>
+      </p>
+      <% } %>
+        <form method="POST" action="/images" class="flex flex-col gap-3 max-w-xl">
+          <label class="form-control w-full">
+            <span class="label-text mb-1">Name</span>
+            <input type="text" id="name" name="name" value="<%= form.name %>" pattern="[a-z][a-z0-9-]{0,31}"
+              maxlength="32" placeholder="e.g. ubuntu-24-04" required autofocus
+              class="input input-bordered rounded-sm w-full">
+            <span class="label-text-alt mt-1 text-base-content/60">Used as the Proxmox template's name.</span>
+          </label>
+
+          <label class="form-control w-full">
+            <span class="label-text mb-1">Source image URL</span>
+            <input type="url" id="sourceUrl" name="sourceUrl" value="<%= form.sourceUrl %>"
+              placeholder="https://cloud-images.ubuntu.com/.../noble-server-cloudimg-amd64.img" required
+              class="input input-bordered rounded-sm w-full">
+            <span class="label-text-alt mt-1 text-base-content/60">A downloadable cloud image (qcow2/img). Forge will
+              allocate a VMID, download and customize it, and convert it to a template on the Proxmox host.</span>
+          </label>
+
+          <button type="submit" class="btn btn-primary btn-sm rounded-sm w-fit">Build image</button>
+        </form>
+        <%- include('../partials/footer') %>

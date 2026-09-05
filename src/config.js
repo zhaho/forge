@@ -16,6 +16,10 @@ module.exports = {
     networkBridge: process.env.PROXMOX_NETWORK_BRIDGE || 'vmbr0',
     datastore: process.env.PROXMOX_DATASTORE || 'local-lvm',
     templateId: parseInt(process.env.PROXMOX_TEMPLATE_ID || '9200', 10),
+    // Direct SSH access to the Proxmox host itself (distinct from config.ssh,
+    // which targets deployed VMs) - used only for building/destroying images.
+    sshHost: process.env.PROXMOX_SSH_HOST,
+    sshUser: process.env.PROXMOX_SSH_USER || 'root',
   },
 
   ipam: {
@@ -31,6 +35,20 @@ module.exports = {
     user: process.env.HOST_USER || 'zhaho',
     privateKeyPath: process.env.SSH_PRIVATE_KEY_PATH || '/home/forge/.ssh/id_rsa',
     knownHostsPath: path.join(dataDir, 'ssh_known_hosts'),
+  },
+
+  // Cloud-init defaults baked into every image Forge builds, so VMs cloned
+  // from them stay reachable the same way as the existing template.
+  image: {
+    ciUser: process.env.IMAGE_CI_USER || process.env.HOST_USER || 'zhaho',
+    ciPassword: process.env.IMAGE_CI_PASSWORD || '',
+    ciUpgrade: process.env.IMAGE_CI_UPGRADE || '1',
+    ciIpConfig: process.env.IMAGE_CI_IPCONFIG || 'ip=dhcp',
+    vmMemory: parseInt(process.env.IMAGE_VM_MEMORY || '2048', 10),
+    vmDiskSize: process.env.IMAGE_VM_DISK_SIZE || '20G',
+    // Templates get VMIDs from this range upward, kept separate from the
+    // lower range Proxmox hands out to regular deployed VMs.
+    vmidRangeStart: parseInt(process.env.IMAGE_VMID_RANGE_START || '9000', 10),
   },
 
   terraformModulePath: process.env.TF_MODULE_PATH || path.join(__dirname, '../terraform/modules/proxmox-vm'),

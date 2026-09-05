@@ -1,0 +1,123 @@
+<%- include('../partials/header') %>
+  <%- include('../partials/nav') %>
+
+    <div class="card bg-base-200 shadow-sm mb-6">
+      <div class="card-body flex-row flex-wrap items-center justify-between gap-4 py-4">
+        <div>
+          <h1 class="text-2xl font-bold">
+            <%= image.name %>
+              <% if (image.vm_id) { %><span class="text-base-content/60 font-normal text-base">(VMID
+                  <%= image.vm_id %>)
+                </span>
+                <% } %>
+          </h1>
+          <div class="mt-1">
+            <%- include('../partials/status-badge', { status: image.status, id: 'image-status' }) %>
+          </div>
+          <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-base-content/60">
+            <% if (image.started_at) { %>
+              <span class="inline-flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                  class="shrink-0">
+                  <circle cx="12" cy="12" r="9" />
+                  <polyline points="12 7 12 12 15.5 14" />
+                </svg>
+                Started <%= image.started_at %>
+              </span>
+              <% } %>
+                <% if (image.finished_at) { %>
+                  <span class="inline-flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                      class="shrink-0">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                    Finished <%= image.finished_at %>
+                  </span>
+                  <% } %>
+                    <% if (image.duration) { %>
+                      <span class="inline-flex items-center gap-1.5 font-medium text-base-content/80">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none"
+                          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                          class="shrink-0">
+                          <circle cx="12" cy="13" r="7" />
+                          <path d="M12 9v4l2.5 1.5M9 3h6M12 3v3" />
+                        </svg>
+                        Took <%= image.duration %>
+                      </span>
+                      <% } %>
+                        <% if (['running', 'queued' ].includes(image.status)) { %>
+                          <span id="elapsed-counter" class="inline-flex items-center gap-1.5 font-medium text-info">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14"
+                              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                              stroke-linejoin="round" class="shrink-0">
+                              <circle cx="12" cy="13" r="7" />
+                              <path d="M12 9v4l2.5 1.5M9 3h6M12 3v3" />
+                            </svg>
+                            <span id="elapsed-text">Queued...</span>
+                          </span>
+                          <% } %>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <% if (image.status==='failed' ) { %>
+            <form method="POST" action="/images/<%= image.id %>/retry" data-loading-text="Retrying...">
+              <button type="submit" class="btn btn-sm rounded-sm">Retry</button>
+            </form>
+            <% } %>
+              <% if (['success', 'failed' ].includes(image.status)) { %>
+                <form method="POST" action="/images/<%= image.id %>/destroy" data-loading-text="Destroying..."
+                  onsubmit="return confirm('Destroy the template \'<%= image.name %>\'? This cannot be undone.');">
+                  <button type="submit" class="btn btn-error btn-sm rounded-sm">Destroy</button>
+                </form>
+                <% } %>
+        </div>
+      </div>
+    </div>
+
+    <div class="card bg-base-200 shadow-sm mb-6">
+      <div class="card-body">
+        <h2 class="card-title text-lg mb-2">Steps</h2>
+        <% var totalSteps=steps.length; var doneSteps=steps.filter(function (s) { return s.status==='success' ;
+          }).length; var stepsPct=totalSteps ? Math.round((doneSteps / totalSteps) * 100) : 0; %>
+          <div id="steps-progress-track"
+            class="w-full h-2 rounded-sm bg-base-300 overflow-hidden mb-3 <%= ['running', 'queued' ].includes(image.status) ? '' : 'hidden' %>">
+            <div id="steps-progress-bar"
+              class="h-full bg-info transition-all duration-500 ease-out <%= image.status==='running' ? 'steps-progress-active' : '' %>"
+              style="width: <%= stepsPct %>%"></div>
+          </div>
+          <ul class="steps steps-vertical">
+            <% var stepDotClass={ success: 'step-success' , failed: 'step-error' , interrupted: 'step-error' ,
+              running: 'step-info' , queued: 'step-info' }; %>
+              <% var stepAnimClass={ running: 'step-active-pulse' }; %>
+                <% steps.forEach(function (step) { %>
+                  <li class="step <%= stepDotClass[step.status] || '' %> <%= stepAnimClass[step.status] || '' %>"
+                    data-step="<%= step.seq %>">
+                    <span class="flex items-center gap-2 text-left">
+                      <span class="font-medium w-48 shrink-0">
+                        <%= step.name.replace(/_/g, ' ' ) %>
+                      </span>
+                      <%- include('../partials/status-badge', { status: step.status }) %>
+                        <% if (step.status==='running' ) { %>
+                          <span class="loading loading-spinner loading-xs text-info"></span>
+                          <% } %>
+                    </span>
+                  </li>
+                  <% }) %>
+          </ul>
+      </div>
+    </div>
+
+    <div class="card bg-base-200 shadow-sm mb-6">
+      <div class="card-body">
+        <h2 class="card-title text-lg">Log</h2>
+        <pre id="log"
+          class="max-h-[400px] overflow-y-auto bg-neutral text-neutral-content p-4 text-sm rounded-box"><%= existingLog %></pre>
+      </div>
+    </div>
+
+    <script>window.FORGE_IMAGE_ID = <%= image.id %>;
+      window.FORGE_IMAGE_STARTED_AT = <% - JSON.stringify(image.started_at_raw) %>;</script>
+    <script src="/public/js/image.js"></script>
+    <%- include('../partials/footer') %>

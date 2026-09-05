@@ -43,6 +43,17 @@
                         Took <%= deployment.duration %>
                       </span>
                       <% } %>
+                        <% if (['running', 'queued' ].includes(deployment.status)) { %>
+                          <span id="elapsed-counter" class="inline-flex items-center gap-1.5 font-medium text-info">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14"
+                              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                              stroke-linejoin="round" class="shrink-0">
+                              <circle cx="12" cy="13" r="7" />
+                              <path d="M12 9v4l2.5 1.5M9 3h6M12 3v3" />
+                            </svg>
+                            <span id="elapsed-text">Queued...</span>
+                          </span>
+                          <% } %>
           </div>
         </div>
         <div class="flex gap-2">
@@ -223,7 +234,8 @@
       </div>
     </div>
 
-    <script>window.FORGE_DEPLOYMENT_ID = <%= deployment.id %>;</script>
+    <script>window.FORGE_DEPLOYMENT_ID = <%= deployment.id %>;
+      window.FORGE_DEPLOYMENT_STARTED_AT = <% - JSON.stringify(deployment.started_at_raw) %>;</script>
     <script src="/public/js/deployment.js"></script>
     <script src="/public/js/component-search.js"></script>
     <%- include('../partials/footer') %>

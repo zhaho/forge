@@ -30,6 +30,18 @@
           </label>
 
           <label class="form-control w-full">
+            <span class="label-text mb-1">Image <span class="text-base-content/50 font-normal">(optional)</span></span>
+            <select id="imageId" name="imageId" class="select select-bordered rounded-sm w-full">
+              <option value="">Use role default</option>
+              <% images.forEach(function (image) { %>
+                <option value="<%= image.id %>" <%=String(form.imageId)===String(image.id) ? 'selected' : '' %>>
+                  <%= image.name %> (VMID <%= image.vm_id %>)
+                </option>
+                <% }) %>
+            </select>
+          </label>
+
+          <label class="form-control w-full">
             <span class="label-text mb-1">Quantity</span>
             <input type="number" id="quantity" name="quantity" value="<%= form.quantity %>" min="1" max="10" required
               class="input input-bordered rounded-sm w-full">

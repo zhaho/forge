@@ -63,6 +63,33 @@ CREATE TABLE IF NOT EXISTS components (
   ansible_role TEXT NOT NULL
 );
 
+-- A built Proxmox VM template (base image) that deployments can clone from.
+CREATE TABLE IF NOT EXISTS images (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  name         TEXT NOT NULL,
+  source_url   TEXT NOT NULL,
+  vm_id        INTEGER,          -- Proxmox VMID, allocated during the build
+  action       TEXT NOT NULL DEFAULT 'create', -- 'create' | 'destroy'
+  status       TEXT NOT NULL DEFAULT 'queued', -- queued|running|success|failed|destroyed
+  workdir_path TEXT,
+  started_at   TEXT,
+  finished_at  TEXT,
+  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at   TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS image_steps (
+  id           INTEGER PRIMARY KEY AUTOINCREMENT,
+  image_id     INTEGER NOT NULL REFERENCES images(id) ON DELETE CASCADE,
+  seq          INTEGER NOT NULL,
+  name         TEXT NOT NULL,
+  status       TEXT NOT NULL DEFAULT 'pending',
+  log_path     TEXT,
+  started_at   TEXT,
+  finished_at  TEXT,
+  UNIQUE(image_id, seq)
+);
+
 -- A role (lab, mgmt, custom...) is composed of a checked set of components.
 -- Roles with a non-empty playbook_path (e.g. k3s-cluster) use a dedicated
 -- playbook instead and are not component-based.

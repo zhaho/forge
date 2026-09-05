@@ -3,8 +3,30 @@
 
     <h1 class="text-2xl font-bold mb-4">Edit role: <%= role.label %>
     </h1>
-    <p>
+    <p class="mb-4">
       This role uses a dedicated playbook (<code><%= role.playbook_path %></code>) with its own logic
-      (e.g. control-plane/worker assignment) instead of the component checklist, so it can't be edited here.
+      (e.g. control-plane/worker assignment) instead of the component checklist, so components can't be edited here.
     </p>
-    <%- include('../partials/footer') %>
+    <% if (error) { %>
+      <p class="text-error text-sm mb-4">
+        <%= error %>
+      </p>
+      <% } %>
+        <form method="POST" action="/roles/<%= role.id %>" class="flex flex-col gap-3 max-w-xl">
+          <label class="form-control w-full">
+            <span class="label-text mb-1">Default image</span>
+            <select id="defaultImageId" name="defaultImageId" class="select select-bordered rounded-sm w-full">
+              <option value="">Use global template (PROXMOX_TEMPLATE_ID)</option>
+              <% images.forEach(function (image) { %>
+                <option value="<%= image.id %>" <%=String(form.defaultImageId)===String(image.id) ? 'selected' : '' %>>
+                  <%= image.name %> (VMID <%= image.vm_id %>)
+                </option>
+                <% }) %>
+            </select>
+            <span class="label-text-alt mt-1 text-base-content/60">Template new deployments of this role clone from,
+              unless overridden per-deployment.</span>
+          </label>
+
+          <button type="submit" class="btn btn-primary btn-sm rounded-sm w-fit">Save changes</button>
+        </form>
+        <%- include('../partials/footer') %>

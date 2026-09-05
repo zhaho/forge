@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const Database = require('better-sqlite3');
+const config = require('../config');
 
 const dataDir = path.resolve(process.env.DATA_DIR || path.join(__dirname, '../../data'));
 fs.mkdirSync(dataDir, { recursive: true });
@@ -30,6 +31,27 @@ try {
 } catch (err) {
   // Column already exists - fine.
 }
+
+// Idempotent migration: older DBs predate per-deployment image selection.
+try {
+  db.exec('ALTER TABLE roles ADD COLUMN default_image_id INTEGER REFERENCES images(id)');
+} catch (err) {
+  // Column already exists - fine.
+}
+try {
+  db.exec('ALTER TABLE deployments ADD COLUMN image_id INTEGER REFERENCES images(id)');
+} catch (err) {
+  // Column already exists - fine.
+}
+try {
+  db.exec('ALTER TABLE deployments ADD COLUMN template_id INTEGER');
+} catch (err) {
+  // Column already exists - fine.
+}
+// Deployments created before per-deployment images existed all cloned the
+// single template configured via PROXMOX_TEMPLATE_ID - backfill that as their
+// effective template_id so a future retry still renders valid Terraform.
+db.prepare('UPDATE deployments SET template_id = ? WHERE template_id IS NULL').run(config.proxmox.templateId);
 
 // Backfill deployment-level timing for deployments that predate the started_at/
 // finished_at columns, using their steps' own timestamps as the source of truth.
@@ -80,6 +102,10 @@ try {
 db.prepare("UPDATE steps SET status = 'interrupted', finished_at = datetime('now') WHERE status = 'running'").run();
 db.prepare(
   "UPDATE deployments SET status = 'failed', finished_at = datetime('now'), updated_at = datetime('now') WHERE status = 'running'",
+).run();
+db.prepare("UPDATE image_steps SET status = 'interrupted', finished_at = datetime('now') WHERE status = 'running'").run();
+db.prepare(
+  "UPDATE images SET status = 'failed', finished_at = datetime('now'), updated_at = datetime('now') WHERE status = 'running'",
 ).run();
 
 module.exports = db;

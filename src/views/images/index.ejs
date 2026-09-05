@@ -1,0 +1,106 @@
+<%- include('../partials/header') %>
+  <%- include('../partials/nav') %>
+
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-2xl font-bold">Images</h1>
+      <a href="/images/new" class="btn btn-primary btn-sm rounded-sm">New image</a>
+    </div>
+
+    <% if (images.length===0) { %>
+      <p class="text-base-content/60">No images yet.</p>
+      <% } else { %>
+        <div class="card bg-base-200 shadow-sm mb-6">
+          <div class="card-body p-0">
+            <table class="table">
+              <thead>
+                <tr class="text-xs uppercase tracking-wider text-base-content/50">
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>VMID</th>
+                  <th>Created</th>
+                  <th>Duration</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% images.forEach(function (image) { %>
+                  <tr class="hover:bg-base-300/40 transition-colors">
+                    <td><a class="link link-hover font-medium" href="/images/<%= image.id %>">
+                        <%= image.name %>
+                      </a></td>
+                    <td>
+                      <%- include('../partials/status-badge', { status: image.status }) %>
+                    </td>
+                    <td class="whitespace-nowrap text-base-content/70">
+                      <%= image.vm_id || '–' %>
+                    </td>
+                    <td class="whitespace-nowrap text-base-content/70">
+                      <%= image.created_at %>
+                    </td>
+                    <td class="whitespace-nowrap text-base-content/70">
+                      <%= image.duration || '–' %>
+                    </td>
+                    <td class="whitespace-nowrap text-right">
+                      <% if (['failed', 'success' ].includes(image.status)) { %>
+                        <div class="dropdown dropdown-end">
+                          <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle" aria-label="Actions">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"
+                              fill="currentColor">
+                              <circle cx="12" cy="5" r="1.5" />
+                              <circle cx="12" cy="12" r="1.5" />
+                              <circle cx="12" cy="19" r="1.5" />
+                            </svg>
+                          </div>
+                          <ul tabindex="0"
+                            class="dropdown-content menu menu-sm bg-base-100 border border-base-300 rounded-box z-10 w-36 p-1 shadow-lg">
+                            <% if (image.status==='failed' ) { %>
+                              <li>
+                                <form method="POST" action="/images/<%= image.id %>/retry"
+                                  data-loading-text="Retrying...">
+                                  <button type="submit" class="btn btn-ghost btn-sm justify-start w-full">Retry</button>
+                                </form>
+                              </li>
+                              <% } %>
+                                <li>
+                                  <button type="button" class="btn btn-ghost btn-sm justify-start w-full text-error"
+                                    onclick="document.getElementById('destroy-modal-<%= image.id %>').showModal()">Destroy</button>
+                                </li>
+                          </ul>
+                        </div>
+                        <% } %>
+                    </td>
+                  </tr>
+                  <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <% images.filter(function (i) { return ['failed', 'success' ].includes(i.status); }).forEach(function (image) {
+          %>
+          <dialog id="destroy-modal-<%= image.id %>" class="modal">
+            <div class="modal-box">
+              <h3 class="font-bold text-lg">Destroy image</h3>
+              <p class="py-2">Destroy the template <span class="font-semibold">
+                  <%= image.name %>
+                </span> (VMID <%= image.vm_id %>)? This cannot be undone, and any role using it as a default will fall
+                  back to the global template.</p>
+              <div class="modal-action">
+                <form method="dialog">
+                  <button class="btn btn-sm rounded-sm">Cancel</button>
+                </form>
+                <form method="POST" action="/images/<%= image.id %>/destroy" data-loading-text="Destroying...">
+                  <button type="submit" class="btn btn-error btn-sm rounded-sm">Destroy</button>
+                </form>
+              </div>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+              <button>close</button>
+            </form>
+          </dialog>
+          <% }) %>
+            <% if (images.some(function (i) { return ['running', 'queued' ].includes(i.status); })) { %>
+              <script>window.setTimeout(function () { location.reload(); }, 5000);</script>
+              <% } %>
+                <% } %>
+                  <%- include('../partials/footer') %>
