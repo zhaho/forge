@@ -116,8 +116,34 @@ function getSteps(deploymentId) {
   return db.prepare('SELECT * FROM steps WHERE deployment_id = ? ORDER BY seq').all(deploymentId);
 }
 
+// Bounds timing to the deployment's original steps (seq 1..N) so a later
+// component install/reinstall/destroy - which appends more steps to the same
+// deployment - doesn't stretch out the reported duration/finish time.
+function getInitialRunTiming(deploymentId) {
+  return db
+    .prepare(
+      `SELECT MIN(started_at) AS started_at, MAX(finished_at) AS finished_at
+       FROM steps WHERE deployment_id = ? AND seq <= ?`,
+    )
+    .get(deploymentId, STEP_NAMES.length);
+}
+
+const TERMINAL_DEPLOYMENT_STATUSES = ['success', 'failed', 'destroyed'];
+
 function updateDeploymentStatus(id, status) {
-  db.prepare("UPDATE deployments SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, id);
+  if (status === 'running') {
+    // COALESCE keeps the original started_at across retries, so duration reflects
+    // the very first attempt rather than resetting on each re-run.
+    db.prepare(
+      "UPDATE deployments SET status = ?, started_at = COALESCE(started_at, datetime('now')), updated_at = datetime('now') WHERE id = ?",
+    ).run(status, id);
+  } else if (TERMINAL_DEPLOYMENT_STATUSES.includes(status)) {
+    db.prepare(
+      "UPDATE deployments SET status = ?, finished_at = datetime('now'), updated_at = datetime('now') WHERE id = ?",
+    ).run(status, id);
+  } else {
+    db.prepare("UPDATE deployments SET status = ?, updated_at = datetime('now') WHERE id = ?").run(status, id);
+  }
 }
 
 function buildUpdate(table, id, fields) {
@@ -233,6 +259,7 @@ module.exports = {
   listDeployments,
   getNodes,
   getSteps,
+  getInitialRunTiming,
   updateDeploymentStatus,
   updateStep,
   updateNode,

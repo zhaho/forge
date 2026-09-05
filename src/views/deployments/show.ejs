@@ -10,6 +10,40 @@
           <div class="mt-1">
             <%- include('../partials/status-badge', { status: deployment.status, id: 'deployment-status' }) %>
           </div>
+          <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-base-content/60">
+            <% if (deployment.started_at) { %>
+              <span class="inline-flex items-center gap-1.5">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                  class="shrink-0">
+                  <circle cx="12" cy="12" r="9" />
+                  <polyline points="12 7 12 12 15.5 14" />
+                </svg>
+                Started <%= deployment.started_at %>
+              </span>
+              <% } %>
+                <% if (deployment.finished_at) { %>
+                  <span class="inline-flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none"
+                      stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                      class="shrink-0">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                    Finished <%= deployment.finished_at %>
+                  </span>
+                  <% } %>
+                    <% if (deployment.duration) { %>
+                      <span class="inline-flex items-center gap-1.5 font-medium text-base-content/80">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="14" height="14" fill="none"
+                          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                          class="shrink-0">
+                          <circle cx="12" cy="13" r="7" />
+                          <path d="M12 9v4l2.5 1.5M9 3h6M12 3v3" />
+                        </svg>
+                        Took <%= deployment.duration %>
+                      </span>
+                      <% } %>
+          </div>
         </div>
         <div class="flex gap-2">
           <% if (deployment.status==='failed' ) { %>

@@ -7,6 +7,7 @@ const config = require('../config');
 const queue = require('../jobs/queue');
 const pipeline = require('../jobs/pipeline');
 const { getEmitter } = require('../jobs/events');
+const { formatDuration, formatTimestamp } = require('../utils/duration');
 
 const router = express.Router();
 
@@ -201,8 +202,15 @@ router.get('/deployments/:id', requireAuth, (req, res) => {
     ? []
     : repo.listComponents().filter((c) => !installedIds.has(c.id));
 
+  const timing = repo.getInitialRunTiming(deployment.id);
+
   res.render('deployments/show', {
-    deployment,
+    deployment: {
+      ...deployment,
+      started_at: formatTimestamp(timing.started_at),
+      finished_at: formatTimestamp(timing.finished_at),
+      duration: formatDuration(timing.started_at, timing.finished_at),
+    },
     role,
     installedComponents,
     availableComponents,

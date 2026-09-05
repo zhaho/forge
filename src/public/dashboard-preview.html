@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="forge">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Forge preview</title>
+  <link rel="stylesheet" href="http://localhost:3000/public/css/tailwind.css">
+  <link rel="stylesheet" href="http://localhost:3000/public/css/forge.css">
+</head>
+
+<body class="min-h-screen flex flex-col bg-base-100 text-base-content">
+  <main class="flex-1 w-full max-w-5xl mx-auto px-4 py-6">
+    <div class="navbar bg-base-200 rounded-box mb-6 px-4 shadow-sm">
+      <div class="flex-1">Forge</div>
+    </div>
+
+    <h1 class="text-2xl font-bold mb-4">Dashboard</h1>
+    <p class="mb-4"><a href="#" class="btn btn-primary btn-sm rounded-sm">New deployment</a></p>
+
+    <div class="overflow-x-auto mb-6">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Nodes</th>
+            <th>Created</th>
+            <th>Duration</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a class="link link-hover" href="#">labsrv</a></td>
+            <td>Management server</td>
+            <td><span class="status-badge badge rounded-sm items-center justify-center text-center leading-none badge-success">success</span></td>
+            <td>10.4.5.101, 10.4.5.102, 10.4.5.103</td>
+            <td>2026-09-04 06:24:28</td>
+            <td>1m 26s</td>
+            <td class="whitespace-nowrap">
+              <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-square" aria-label="Actions">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                    <circle cx="12" cy="5" r="1.5" />
+                    <circle cx="12" cy="12" r="1.5" />
+                    <circle cx="12" cy="19" r="1.5" />
+                  </svg>
+                </div>
+                <ul tabindex="0" class="dropdown-content menu menu-sm bg-base-100 rounded-box z-10 w-36 p-2 shadow">
+                  <li>
+                    <form><button type="submit" class="w-full text-left text-error">Destroy</button></form>
+                  </li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td><a class="link link-hover" href="#">lab</a></td>
+            <td>Lab node</td>
+            <td><span class="status-badge badge rounded-sm items-center justify-center text-center leading-none badge-error">failed</span></td>
+            <td><em>2 pending</em></td>
+            <td>2026-09-03 20:51:50</td>
+            <td>–</td>
+            <td class="whitespace-nowrap">
+              <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-square" aria-label="Actions">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                    <circle cx="12" cy="5" r="1.5" />
+                    <circle cx="12" cy="12" r="1.5" />
+                    <circle cx="12" cy="19" r="1.5" />
+                  </svg>
+                </div>
+                <ul tabindex="0" class="dropdown-content menu menu-sm bg-base-100 rounded-box z-10 w-36 p-2 shadow">
+                  <li>
+                    <form><button type="submit" class="w-full text-left">Retry</button></form>
+                  </li>
+                  <li>
+                    <form><button type="submit" class="w-full text-left text-error">Destroy</button></form>
+                  </li>
+                </ul>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</body>
+
+</html>

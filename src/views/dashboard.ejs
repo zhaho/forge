@@ -1,104 +1,163 @@
 <%- include('partials/header') %>
   <%- include('partials/nav') %>
 
-    <h1 class="text-2xl font-bold mb-4">Dashboard</h1>
-    <p class="mb-4"><a href="/deployments/new" class="btn btn-primary btn-sm rounded-sm">New deployment</a></p>
+    <div class="flex items-center justify-between mb-4">
+      <h1 class="text-2xl font-bold">Dashboard</h1>
+      <a href="/deployments/new" class="btn btn-primary btn-sm rounded-sm">New deployment</a>
+    </div>
 
     <% if (deployments.length===0) { %>
-      <p>No deployments yet.</p>
+      <p class="text-base-content/60">No deployments yet.</p>
       <% } else { %>
         <% var active=deployments.filter(function (d) { return d.status !=='destroyed' ; }); %>
           <% var destroyed=deployments.filter(function (d) { return d.status==='destroyed' ; }); %>
 
             <% if (active.length===0) { %>
-              <p>No active deployments.</p>
+              <p class="text-base-content/60">No active deployments.</p>
               <% } else { %>
-                <div class="overflow-x-auto mb-6">
-                  <table class="table">
-                    <thead>
-                      <tr>
-                        <th>Name</th>
-                        <th>Role</th>
-                        <th>Status</th>
-                        <th>Nodes</th>
-                        <th>Created</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <% active.forEach(function (deployment) { %>
-                        <tr>
-                          <td><a class="link link-hover" href="/deployments/<%= deployment.id %>">
-                              <%= deployment.name %>
-                            </a></td>
-                          <td>
-                            <%= deployment.role_label %>
-                          </td>
-                          <td><%- include('partials/status-badge', { status: deployment.status }) %></td>
-                          <td>
-                            <% if (deployment.node_ips) { %>
-                              <%= deployment.node_ips.split(',').join(', ') %>
-                          <% } else { %>
-                            <em><%= deployment.node_count %> pending</em>
-                            <% } %>
-                      </td>
-                      <td>
-                        <%= deployment.created_at %>
-                      </td>
-                      <td class="flex flex-wrap gap-2 whitespace-nowrap">
-                        <% if (deployment.status===' failed' ) { %>
-                                <form method="POST" action="/deployments/<%= deployment.id %>/retry"
-                                  data-loading-text="Retrying...">
-                                  <button type="submit" class="btn btn-sm rounded-sm">Retry</button>
-                                </form>
-                                <% } %>
-                                  <% if (['success', 'failed' ].includes(deployment.status)) { %>
-                                    <form method="POST" action="/deployments/<%= deployment.id %>/destroy"
-                                      data-loading-text="Destroying..."
-                                      onsubmit="return confirm('Destroy all nodes in \'<%= deployment.name %>\'? This cannot be undone.');">
-                                      <button type="submit" class="btn btn-error btn-sm rounded-sm">Destroy</button>
-                                    </form>
-                                    <% } %>
-                          </td>
+                <div class="card bg-base-200 shadow-sm mb-6">
+                  <div class="card-body p-0">
+                    <table class="table">
+                      <thead>
+                        <tr class="text-xs uppercase tracking-wider text-base-content/50">
+                          <th>Name</th>
+                          <th>Role</th>
+                          <th>Status</th>
+                          <th>Nodes</th>
+                          <th>Created</th>
+                          <th>Duration</th>
+                          <th></th>
                         </tr>
-                        <% }) %>
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        <% active.forEach(function (deployment) { %>
+                          <tr class="hover:bg-base-300/40 transition-colors">
+                            <td><a class="link link-hover font-medium" href="/deployments/<%= deployment.id %>">
+                                <%= deployment.name %>
+                              </a></td>
+                            <td>
+                              <%= deployment.role_label %>
+                            </td>
+                            <td>
+                              <%- include('partials/status-badge', { status: deployment.status }) %>
+                            </td>
+                            <td class="max-w-[16rem] truncate" <% if (deployment.node_ips) { %>title="<%=
+                                deployment.node_ips.split(',').join(', ') %>"<% } %>>
+                              <% if (deployment.node_ips) { %>
+                                <%= deployment.node_ips.split(' ,').join(', ') %>
+                            <% } else { %>
+                              <em class="text-base-content/60"><%= deployment.node_count %> pending</em>
+                              <% } %>
+                        </td>
+                        <td class="whitespace-nowrap text-base-content/70">
+                          <%= deployment.created_at %>
+                        </td>
+                        <td class="whitespace-nowrap text-base-content/70">
+                          <%= deployment.duration || ' –' %>
+                            </td>
+                            <td class="whitespace-nowrap text-right">
+                              <% if (['failed', 'success' ].includes(deployment.status)) { %>
+                                <div class="dropdown dropdown-end">
+                                  <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle"
+                                    aria-label="Actions">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16"
+                                      fill="currentColor">
+                                      <circle cx="12" cy="5" r="1.5" />
+                                      <circle cx="12" cy="12" r="1.5" />
+                                      <circle cx="12" cy="19" r="1.5" />
+                                    </svg>
+                                  </div>
+                                  <ul tabindex="0"
+                                    class="dropdown-content menu menu-sm bg-base-100 border border-base-300 rounded-box z-10 w-36 p-1 shadow-lg">
+                                    <% if (deployment.status==='failed' ) { %>
+                                      <li>
+                                        <form method="POST" action="/deployments/<%= deployment.id %>/retry"
+                                          data-loading-text="Retrying...">
+                                          <button type="submit"
+                                            class="btn btn-ghost btn-sm justify-start w-full">Retry</button>
+                                        </form>
+                                      </li>
+                                      <% } %>
+                                        <li>
+                                          <button type="button"
+                                            class="btn btn-ghost btn-sm justify-start w-full text-error"
+                                            onclick="document.getElementById('destroy-modal-<%= deployment.id %>').showModal()">Destroy</button>
+                                        </li>
+                                  </ul>
+                                </div>
+                                <% } %>
+                            </td>
+                          </tr>
+                          <% }) %>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
                 <% } %>
 
-                  <% if (destroyed.length> 0) { %>
-                    <details class="mb-6">
-                      <summary class="cursor-pointer font-semibold mb-2">Destroyed (<%= destroyed.length %>)</summary>
-                      <div class="overflow-x-auto">
-                        <table class="table">
-                          <thead>
-                            <tr>
-                              <th>Name</th>
-                              <th>Role</th>
-                              <th>Status</th>
-                              <th>Created</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            <% destroyed.forEach(function (deployment) { %>
-                              <tr class="opacity-60">
-                                <td><a class="link link-hover" href="/deployments/<%= deployment.id %>">
-                                    <%= deployment.name %>
-                                  </a></td>
-                                <td>
-                                  <%= deployment.role_label %>
-                                </td>
-                                <td><%- include('partials/status-badge', { status: deployment.status }) %></td>
-                                <td>
-                                  <%= deployment.created_at %>
-                                </td>
-                              </tr>
-                              <% }) %>
-                          </tbody>
-                        </table>
+                  <% active.filter(function (d) { return ['failed', 'success' ].includes(d.status); }).forEach(function
+                    (deployment) { %>
+                    <dialog id="destroy-modal-<%= deployment.id %>" class="modal">
+                      <div class="modal-box">
+                        <h3 class="text-lg font-bold text-error">Destroy deployment</h3>
+                        <p class="py-4">This will permanently destroy all nodes in <span class="font-semibold">
+                            <%= deployment.name %>
+                          </span>. This cannot be undone.</p>
+                        <div class="modal-action">
+                          <form method="dialog">
+                            <button class="btn btn-ghost btn-sm rounded-sm">Cancel</button>
+                          </form>
+                          <form method="POST" action="/deployments/<%= deployment.id %>/destroy"
+                            data-loading-text="Destroying...">
+                            <button type="submit" class="btn btn-error btn-sm rounded-sm">Destroy</button>
+                          </form>
+                        </div>
                       </div>
-                    </details>
-                    <% } %>
-                      <% } %>
-                        <%- include('partials/footer') %>
+                      <form method="dialog" class="modal-backdrop">
+                        <button>close</button>
+                      </form>
+                    </dialog>
+                    <% }) %>
+
+                      <% if (destroyed.length> 0) { %>
+                        <div class="collapse collapse-arrow bg-base-200 shadow-sm rounded-box mb-6">
+                          <input type="checkbox" />
+                          <div class="collapse-title font-semibold">Destroyed (<%= destroyed.length %>)</div>
+                          <div class="collapse-content !pb-0">
+                            <table class="table">
+                              <thead>
+                                <tr class="text-xs uppercase tracking-wider text-base-content/50">
+                                  <th>Name</th>
+                                  <th>Role</th>
+                                  <th>Status</th>
+                                  <th>Created</th>
+                                  <th>Duration</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <% destroyed.forEach(function (deployment) { %>
+                                  <tr class="opacity-60">
+                                    <td><a class="link link-hover" href="/deployments/<%= deployment.id %>">
+                                        <%= deployment.name %>
+                                      </a></td>
+                                    <td>
+                                      <%= deployment.role_label %>
+                                    </td>
+                                    <td>
+                                      <%- include('partials/status-badge', { status: deployment.status }) %>
+                                    </td>
+                                    <td class="whitespace-nowrap">
+                                      <%= deployment.created_at %>
+                                    </td>
+                                    <td class="whitespace-nowrap">
+                                      <%= deployment.duration || '–' %>
+                                    </td>
+                                  </tr>
+                                  <% }) %>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                        <% } %>
+                          <% } %>
+                            <%- include('partials/footer') %>
