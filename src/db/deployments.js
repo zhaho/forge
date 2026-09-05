@@ -98,11 +98,12 @@ function getDeployment(id) {
 function listDeployments() {
   return db
     .prepare(
-      `SELECT d.*, r.label AS role_label,
+      `SELECT d.*, r.label AS role_label, i.name AS image_name,
          (SELECT COUNT(*) FROM deployment_nodes n WHERE n.deployment_id = d.id) AS node_count,
          (SELECT GROUP_CONCAT(n.ip) FROM deployment_nodes n WHERE n.deployment_id = d.id AND n.ip IS NOT NULL) AS node_ips
        FROM deployments d
        JOIN roles r ON r.id = d.role_id
+       LEFT JOIN images i ON i.id = d.image_id
        ORDER BY d.created_at DESC`,
     )
     .all();

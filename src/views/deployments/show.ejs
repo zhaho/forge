@@ -40,7 +40,7 @@
                           <circle cx="12" cy="13" r="7" />
                           <path d="M12 9v4l2.5 1.5M9 3h6M12 3v3" />
                         </svg>
-                        Took <%= deployment.duration %>
+                        Deployment Time: <%= deployment.duration %>
                       </span>
                       <% } %>
                         <% if (['running', 'queued' ].includes(deployment.status)) { %>
@@ -51,7 +51,11 @@
                               <circle cx="12" cy="13" r="7" />
                               <path d="M12 9v4l2.5 1.5M9 3h6M12 3v3" />
                             </svg>
-                            <span id="elapsed-text">Queued...</span>
+                            <% if (isFollowUpRun) { %>
+                              <span id="elapsed-text">Installing...</span>
+                              <% } else { %>
+                                <span id="elapsed-text">Queued...</span>
+                                <% } %>
                           </span>
                           <% } %>
           </div>
@@ -234,8 +238,8 @@
       </div>
     </div>
 
-    <script>window.FORGE_DEPLOYMENT_ID = <%= deployment.id %>;
-      window.FORGE_DEPLOYMENT_STARTED_AT = <% - JSON.stringify(deployment.started_at_raw) %>;</script>
+    <div id="forge-deployment-data" class="hidden" data-id="<%= deployment.id %>"
+      data-started-at="<%= JSON.stringify(deployment.started_at_raw) %>" data-follow-up="<%= isFollowUpRun %>"></div>
     <script src="/public/js/deployment.js"></script>
     <script src="/public/js/component-search.js"></script>
     <%- include('../partials/footer') %>

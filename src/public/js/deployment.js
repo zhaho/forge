@@ -1,5 +1,6 @@
 (function () {
-  var deploymentId = window.FORGE_DEPLOYMENT_ID;
+  var dataEl = document.getElementById('forge-deployment-data');
+  var deploymentId = dataEl && dataEl.dataset.id;
   if (!deploymentId) return;
 
   // Keep in sync with src/views/partials/status-badge.ejs
@@ -62,8 +63,15 @@
   // progress. startedAtMs is set either from the server's started_at (if the
   // page was loaded/reloaded mid-run) or from the moment we first see a step
   // go 'running' over SSE (if the page was open before the deployment started).
-  var startedAtRaw = window.FORGE_DEPLOYMENT_STARTED_AT;
-  var startedAtMs = startedAtRaw ? new Date(startedAtRaw.replace(' ', 'T') + 'Z').getTime() : null;
+  // Retries/reinstalls/component installs show a static 'Installing...' label
+  // instead, since started_at reflects the original run, not this action.
+  var isFollowUpRun = dataEl.dataset.followUp === 'true';
+  var startedAtRaw = !isFollowUpRun && dataEl.dataset.startedAt ? JSON.parse(dataEl.dataset.startedAt) : null;
+  // Steps store full ISO timestamps already ending in 'Z'; only the SQLite
+  // "YYYY-MM-DD HH:MM:SS" format needs the space swapped and 'Z' appended.
+  var startedAtMs = startedAtRaw
+    ? new Date(startedAtRaw.includes('T') ? startedAtRaw : startedAtRaw.replace(' ', 'T') + 'Z').getTime()
+    : null;
   var elapsedInterval = null;
 
   function tickElapsed() {
@@ -73,7 +81,7 @@
   }
 
   function startElapsedTimer() {
-    if (elapsedInterval) return;
+    if (isFollowUpRun || elapsedInterval) return;
     tickElapsed();
     elapsedInterval = setInterval(tickElapsed, 1000);
   }

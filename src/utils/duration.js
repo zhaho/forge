@@ -32,4 +32,15 @@ function formatTimestamp(value) {
   );
 }
 
-module.exports = { formatDuration, formatTimestamp };
+// Renders an ISO/SQLite datetime as a compact "YY/MM/DD HH:mm" for table columns.
+function formatShortTimestamp(value) {
+  if (!value) return null;
+  const date = toDate(value);
+  const pad = (n) => String(n).padStart(2, '0');
+  return (
+    `${pad(date.getUTCFullYear() % 100)}/${pad(date.getUTCMonth() + 1)}/${pad(date.getUTCDate())} ` +
+    `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`
+  );
+}
+
+module.exports = { formatDuration, formatTimestamp, formatShortTimestamp };

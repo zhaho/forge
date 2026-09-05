@@ -1,5 +1,6 @@
 (function () {
-  var imageId = window.FORGE_IMAGE_ID;
+  var dataEl = document.getElementById('forge-image-data');
+  var imageId = dataEl && dataEl.dataset.id;
   if (!imageId) return;
 
   // Keep in sync with src/views/partials/status-badge.ejs
@@ -59,8 +60,12 @@
   }
 
   // Ticks a live "Running for Xm Ys" counter while a build is in progress.
-  var startedAtRaw = window.FORGE_IMAGE_STARTED_AT;
-  var startedAtMs = startedAtRaw ? new Date(startedAtRaw.replace(' ', 'T') + 'Z').getTime() : null;
+  var startedAtRaw = dataEl.dataset.startedAt ? JSON.parse(dataEl.dataset.startedAt) : null;
+  // Steps store full ISO timestamps already ending in 'Z'; only the SQLite
+  // "YYYY-MM-DD HH:MM:SS" format needs the space swapped and 'Z' appended.
+  var startedAtMs = startedAtRaw
+    ? new Date(startedAtRaw.includes('T') ? startedAtRaw : startedAtRaw.replace(' ', 'T') + 'Z').getTime()
+    : null;
   var elapsedInterval = null;
 
   function tickElapsed() {

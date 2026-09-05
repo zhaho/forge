@@ -44,7 +44,7 @@
                           <circle cx="12" cy="13" r="7" />
                           <path d="M12 9v4l2.5 1.5M9 3h6M12 3v3" />
                         </svg>
-                        Took <%= image.duration %>
+                        Deployment Time: <%= image.duration %>
                       </span>
                       <% } %>
                         <% if (['running', 'queued' ].includes(image.status)) { %>
@@ -117,7 +117,7 @@
       </div>
     </div>
 
-    <script>window.FORGE_IMAGE_ID = <%= image.id %>;
-      window.FORGE_IMAGE_STARTED_AT = <% - JSON.stringify(image.started_at_raw) %>;</script>
+    <div id="forge-image-data" class="hidden" data-id="<%= image.id %>"
+      data-started-at="<%= JSON.stringify(image.started_at_raw) %>"></div>
     <script src="/public/js/image.js"></script>
     <%- include('../partials/footer') %>

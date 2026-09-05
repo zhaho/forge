@@ -1,0 +1,26 @@
+---
+- name: "autopatch | install unattended-upgrades"
+  package:
+    name: unattended-upgrades
+    state: present
+
+- name: "autopatch | enable automatic nightly package updates"
+  ansible.builtin.copy:
+    src: 20auto-upgrades
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    mode: "0644"
+
+- name: "autopatch | start and enable the unattended-upgrades service"
+  ansible.builtin.service:
+    name: unattended-upgrades
+    state: started
+    enabled: true
+
+- name: "autopatch | enable the apt daily timers that trigger it nightly"
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - apt-daily.timer
+    - apt-daily-upgrade.timer

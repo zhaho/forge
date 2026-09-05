@@ -223,6 +223,9 @@ router.get('/deployments/:id', requireAuth, (req, res) => {
     : repo.listComponents().filter((c) => !installedIds.has(c.id));
 
   const timing = repo.getInitialRunTiming(deployment.id);
+  // More steps than the original run means the current activity is a
+  // retry/reinstall/component action, not the deployment's first apply.
+  const isFollowUpRun = steps.length > repo.STEP_NAMES.length;
 
   res.render('deployments/show', {
     deployment: {
@@ -235,6 +238,7 @@ router.get('/deployments/:id', requireAuth, (req, res) => {
     role,
     installedComponents,
     availableComponents,
+    isFollowUpRun,
     nodes: repo.getNodes(deployment.id),
     steps,
     existingLog: readStepLogs(steps),
