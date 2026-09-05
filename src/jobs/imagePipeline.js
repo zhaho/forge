@@ -208,6 +208,12 @@ async function runImageBuild(imageId) {
   }
 
   const finalStatus = image.action === 'destroy' ? 'destroyed' : 'success';
+  if (finalStatus === 'destroyed') {
+    emit(imageId, { type: 'image', status: 'destroyed' });
+    // Destroyed images aren't kept around for history.
+    repo.deleteImage(imageId);
+    return;
+  }
   repo.updateImageStatus(imageId, finalStatus);
   emit(imageId, { type: 'image', status: finalStatus });
 }

@@ -102,6 +102,13 @@ function resetStepsForRetry(imageId) {
   return toReset;
 }
 
+// Destroyed images aren't kept around for history - remove the row and its
+// steps once the template teardown finishes.
+const deleteImage = db.transaction((id) => {
+  db.prepare('DELETE FROM image_steps WHERE image_id = ?').run(id);
+  db.prepare('DELETE FROM images WHERE id = ?').run(id);
+});
+
 module.exports = {
   STEP_NAMES,
   createImage,
@@ -118,4 +125,5 @@ module.exports = {
   updateImageStatus,
   updateStep,
   resetStepsForRetry,
+  deleteImage,
 };

@@ -245,6 +245,15 @@ function appendUninstallStep(deploymentId, componentId) {
   );
 }
 
+// Destroyed deployments aren't kept around for history - remove the row and
+// everything referencing it once teardown finishes.
+const deleteDeployment = db.transaction((id) => {
+  db.prepare('DELETE FROM deployment_components WHERE deployment_id = ?').run(id);
+  db.prepare('DELETE FROM steps WHERE deployment_id = ?').run(id);
+  db.prepare('DELETE FROM deployment_nodes WHERE deployment_id = ?').run(id);
+  db.prepare('DELETE FROM deployments WHERE id = ?').run(id);
+});
+
 module.exports = {
   STEP_NAMES,
   listRoles,
@@ -278,5 +287,6 @@ module.exports = {
   seedDeploymentComponentsFromRole,
   addDeploymentComponent,
   removeDeploymentComponent,
+  deleteDeployment,
   appendUninstallStep,
 };

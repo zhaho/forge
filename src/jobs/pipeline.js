@@ -331,6 +331,12 @@ async function runDeployment(deploymentId) {
   }
 
   const finalStatus = deployment.action === 'destroy' ? 'destroyed' : 'success';
+  if (finalStatus === 'destroyed') {
+    emit(deploymentId, { type: 'deployment', status: 'destroyed' });
+    // Destroyed deployments aren't kept around for history.
+    repo.deleteDeployment(deploymentId);
+    return;
+  }
   repo.updateDeploymentStatus(deploymentId, finalStatus);
   emit(deploymentId, { type: 'deployment', status: finalStatus });
 }

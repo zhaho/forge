@@ -133,10 +133,13 @@
       if (progressBarEl) {
         progressBarEl.classList.toggle('steps-progress-active', msg.status === 'running');
       }
-      if (msg.status === 'success' || msg.status === 'failed' || msg.status === 'destroyed') {
-        stopElapsedTimer();
+      if (msg.status === 'success' || msg.status === 'failed') {
         source.close();
         location.reload();
+      } else if (msg.status === 'destroyed') {
+        stopElapsedTimer();
+        source.close();
+        location.href = '/';
       }
     }
   };
