@@ -73,7 +73,7 @@
                     <li class="step <%= stepDotClass[step.status] || '' %> <%= stepAnimClass[step.status] || '' %>"
                       data-step="<%= step.seq %>">
                       <span class="flex items-center gap-2 text-left">
-                        <span class="font-medium">
+                        <span class="font-medium w-48 shrink-0">
                           <%= step.name.replace(/_/g, ' ' ) %>
                         </span>
                         <%- include('../partials/status-badge', { status: step.status }) %>

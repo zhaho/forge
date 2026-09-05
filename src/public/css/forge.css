@@ -20,11 +20,8 @@ html:has(.navbar) {
    overflow: visible;
 }
 
-/* daisyUI renders step markers as circles (border-radius:9999px), which is
-   where the edge-visibility problems keep showing up. Use small rounded
-   boxes instead - straight edges are unambiguous and match the app's
-   rounded-sm styling elsewhere - and give every marker a visible ring since
-   its fill color is otherwise close to the surrounding card background. */
+/* Give every marker a visible ring since its fill color is otherwise close
+   to the surrounding card background. */
 .steps .step:before {
    z-index: 0;
 }
@@ -32,7 +29,6 @@ html:has(.navbar) {
 .steps .step:after {
    position: relative;
    z-index: 1;
-   border-radius: 0.25rem;
    box-shadow: 0 0 0 1px oklch(var(--bc) / 0.25);
 }
 
