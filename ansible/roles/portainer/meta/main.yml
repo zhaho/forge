@@ -1,0 +1,9 @@
+---
+galaxy_info:
+  description: "Runs Portainer CE as a Docker container for managing the local Docker engine."
+  license: "MIT"
+  min_ansible_version: "2.10"
+# Ansible runs role dependencies before this role's own tasks, so Docker gets
+# installed first even if the 'docker' component wasn't checked separately.
+dependencies:
+  - role: docker

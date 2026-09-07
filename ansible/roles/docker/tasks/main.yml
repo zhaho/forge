@@ -18,9 +18,13 @@
     mode: "0755"
 
 - name: "docker | download Docker's official GPG key"
-  ansible.builtin.get_url:
-    url: "https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg"
-    dest: /etc/apt/keyrings/docker.asc
+  ansible.builtin.command:
+    cmd: "curl -fsSL https://download.docker.com/linux/{{ ansible_distribution | lower }}/gpg -o /etc/apt/keyrings/docker.asc"
+    creates: /etc/apt/keyrings/docker.asc
+
+- name: "docker | ensure GPG key has correct permissions"
+  ansible.builtin.file:
+    path: /etc/apt/keyrings/docker.asc
     mode: "0644"
 
 - name: "docker | add Docker apt repository"

@@ -80,28 +80,35 @@
       <div class="card bg-base-200 shadow-sm lg:col-span-1">
         <div class="card-body">
           <h2 class="card-title text-lg">Nodes</h2>
+          <p class="text-sm text-base-content/60 -mt-1 mb-1">
+            Check nodes to target a component install/reinstall at just those nodes. Leave unchecked to apply to all.
+          </p>
           <ul class="flex flex-col divide-y divide-base-300">
             <% nodes.forEach(function (node) { %>
               <li class="py-2 flex items-center justify-between gap-2">
-                <span>
-                  <span class="font-semibold">
-                    <%= node.name %>
-                  </span>
-                  <% if (node.sub_role) { %>
-                    <span class="badge badge-ghost rounded-sm badge-sm ml-1">
-                      <%= node.sub_role %>
+                <label class="flex items-center gap-2 cursor-pointer">
+                  <input type="checkbox" class="node-select-checkbox checkbox checkbox-sm" value="<%= node.id %>">
+                  <span>
+                    <span class="font-semibold">
+                      <%= node.name %>
                     </span>
-                    <% } %>
-                      <span class="block text-sm text-base-content/60">
-                        <%= node.ip || 'pending IP' %>
+                    <% if (node.sub_role) { %>
+                      <span class="badge badge-ghost rounded-sm badge-sm ml-1">
+                        <%= node.sub_role %>
                       </span>
-                </span>
+                      <% } %>
+                        <span class="block text-sm text-base-content/60">
+                          <%= node.ip || 'pending IP' %>
+                        </span>
+                  </span>
+                </label>
                 <%- include('../partials/status-badge', { status: node.status }) %>
               </li>
               <% }) %>
           </ul>
         </div>
       </div>
+
 
       <div class="card bg-base-200 shadow-sm lg:col-span-2">
         <div class="card-body">
@@ -139,10 +146,61 @@
 
     <div class="card bg-base-200 shadow-sm mb-6">
       <div class="card-body">
+        <h2 class="card-title text-lg">Node overview</h2>
+        <% if (installedComponents.length===0) { %>
+          <p><em>No components installed yet.</em></p>
+          <% } else { %>
+            <div class="overflow-x-auto">
+              <table class="table table-sm">
+                <thead>
+                  <tr>
+                    <th>Component</th>
+                    <% nodes.forEach(function (node) { %>
+                      <th class="whitespace-nowrap">
+                        <%= node.name %>
+                      </th>
+                      <% }) %>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% installedComponents.forEach(function (component) { %>
+                    <tr>
+                      <td class="font-semibold whitespace-nowrap">
+                        <%= component.label %>
+                      </td>
+                      <% nodes.forEach(function (node) { %>
+                        <% var cellStatus=(nodeComponentStatus[node.id] || {})[component.id]; %>
+                          <td>
+                            <% if (cellStatus) { %>
+                              <%- include('../partials/status-badge', { status: cellStatus }) %>
+                                <% } else { %>
+                                  <span class="text-base-content/40">not installed</span>
+                                  <% } %>
+                          </td>
+                          <% }) %>
+                    </tr>
+                    <% }) %>
+                </tbody>
+              </table>
+            </div>
+
+            <% } %>
+      </div>
+    </div>
+
+    <div class="card bg-base-200 shadow-sm mb-6">
+      <div class="card-body">
         <h2 class="card-title text-lg">Components</h2>
         <% if (role.playbook_path) { %>
-          <p><em>This role uses a dedicated playbook (<%= role.playbook_path %>), not the component system.</em></p>
-          <% } else { %>
+          <p class="text-sm text-base-content/60 mb-2">
+            <em>This role's core setup uses a dedicated playbook (<%= role.playbook_path %>). Components below are
+                optional extras layered on top.</em>
+          </p>
+          <% } %>
+            <p class="text-sm text-base-content/60 -mt-1 mb-2">
+              Reinstall retries only the nodes it isn't currently successful on, unless you check specific nodes
+              above.
+            </p>
             <% var canManage=['success', 'failed' ].includes(deployment.status); %>
 
               <% if (installedComponents.length===0) { %>
@@ -164,13 +222,15 @@
                             <td>
                               <%= component.label %>
                             </td>
-                            <td><%- include('../partials/status-badge', { status: component.installStatus }) %></td>
+                            <td>
+                              <%- include('../partials/status-badge', { status: component.installStatus }) %>
+                            </td>
                             <td><small>
                                 <%= component.description || '' %>
                               </small></td>
                             <td class="flex flex-wrap gap-2 whitespace-nowrap">
                               <% if (canManage) { %>
-                                <form method="POST"
+                                <form method="POST" class="node-target-form"
                                   action="/deployments/<%= deployment.id %>/reinstall/<%= component.id %>"
                                   data-loading-text="Reinstalling...">
                                   <button type="submit" class="btn btn-outline btn-sm rounded-sm">Reinstall</button>
@@ -190,9 +250,10 @@
                   </div>
                   <% } %>
 
-                    <% if (canManage) { %>
-                      <form method="POST" action="/deployments/<%= deployment.id %>/reinstall" class="mt-3"
-                        data-loading-text="Reinstalling...">
+
+                    <% if (canManage && !role.playbook_path) { %>
+                      <form method="POST" action="/deployments/<%= deployment.id %>/reinstall"
+                        class="node-target-form mt-3" data-loading-text="Reinstalling...">
                         <button type="submit" class="btn btn-sm rounded-sm">Reinstall everything</button>
                       </form>
                       <% } %>
@@ -216,7 +277,7 @@
                                     <% } %>
                                 </span>
                                 <% if (canManage) { %>
-                                  <form method="POST"
+                                  <form method="POST" class="node-target-form"
                                     action="/deployments/<%= deployment.id %>/components/<%= component.id %>/install"
                                     data-loading-text="Installing...">
                                     <button type="submit" class="btn btn-primary btn-xs rounded-sm">Install</button>
@@ -226,8 +287,8 @@
                               <% }) %>
                           </ul>
                           <% } %>
-                            <% } %>
       </div>
+
     </div>
 
     <div class="card bg-base-200 shadow-sm mb-6">
@@ -242,4 +303,5 @@
       data-started-at="<%= JSON.stringify(deployment.started_at_raw) %>" data-follow-up="<%= isFollowUpRun %>"></div>
     <script src="/public/js/deployment.js"></script>
     <script src="/public/js/component-search.js"></script>
+    <script src="/public/js/node-targeting.js"></script>
     <%- include('../partials/footer') %>

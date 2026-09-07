@@ -1,0 +1,18 @@
+---
+- name: "portainer | create the portainer data volume"
+  community.docker.docker_volume:
+    name: portainer_data
+    state: present
+
+- name: "portainer | run the portainer container"
+  community.docker.docker_container:
+    name: portainer
+    image: portainer/portainer-ce:latest
+    state: started
+    restart_policy: always
+    ports:
+      - "8000:8000"
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data

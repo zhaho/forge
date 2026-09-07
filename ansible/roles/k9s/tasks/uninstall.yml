@@ -1,0 +1,5 @@
+---
+- name: "k9s | remove the k9s binary"
+  ansible.builtin.file:
+    path: /usr/local/bin/k9s
+    state: absent

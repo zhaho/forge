@@ -48,11 +48,12 @@ function createSteps(deploymentId) {
 }
 
 // Appends an ansible_run + verify pair. Pass a componentId to target just that
-// one component's Ansible role instead of the whole role's component list.
-function appendReinstallSteps(deploymentId, componentId) {
+// one component's Ansible role instead of the whole role's component list, and/or
+// nodeIds to limit the run to a subset of the deployment's nodes (all if omitted).
+function appendReinstallSteps(deploymentId, componentId, nodeIds) {
   const existing = getSteps(deploymentId);
   const nextSeq = existing.length ? Math.max(...existing.map((s) => s.seq)) + 1 : 1;
-  const params = componentId ? JSON.stringify({ componentId }) : null;
+  const params = componentId || (nodeIds && nodeIds.length) ? JSON.stringify({ componentId, nodeIds }) : null;
   db.prepare('INSERT INTO steps (deployment_id, seq, name, params) VALUES (?, ?, ?, ?)').run(
     deploymentId,
     nextSeq,
@@ -235,6 +236,51 @@ function removeDeploymentComponent(deploymentId, componentId) {
   );
 }
 
+function setNodeComponentStatus(nodeId, componentId, status) {
+  db.prepare(
+    `INSERT INTO deployment_node_components (node_id, component_id, status) VALUES (?, ?, ?)
+     ON CONFLICT(node_id, component_id) DO UPDATE SET status = excluded.status`,
+  ).run(nodeId, componentId, status);
+}
+
+function getNodeComponentStatuses(deploymentId) {
+  return db
+    .prepare(
+      `SELECT dnc.node_id, n.name AS node_name, dnc.component_id, dnc.status
+       FROM deployment_node_components dnc
+       JOIN deployment_nodes n ON n.id = dnc.node_id
+       WHERE n.deployment_id = ?`,
+    )
+    .all(deploymentId);
+}
+
+function removeNodeComponentForDeployment(deploymentId, componentId) {
+  db.prepare(
+    `DELETE FROM deployment_node_components
+     WHERE component_id = ? AND node_id IN (SELECT id FROM deployment_nodes WHERE deployment_id = ?)`,
+  ).run(componentId, deploymentId);
+}
+
+// Nodes where a component isn't currently in a 'success' state - used to default a
+// reinstall to just the nodes that need it, instead of silently reapplying everywhere.
+// Pass componentId to scope to one component, or omit it to check any tracked component.
+function getNonSuccessNodeIds(deploymentId, componentId) {
+  const params = [deploymentId];
+  let componentFilter = '';
+  if (componentId) {
+    componentFilter = 'AND dnc.component_id = ?';
+    params.push(componentId);
+  }
+  return db
+    .prepare(
+      `SELECT DISTINCT dnc.node_id FROM deployment_node_components dnc
+       JOIN deployment_nodes n ON n.id = dnc.node_id
+       WHERE n.deployment_id = ? ${componentFilter} AND dnc.status != 'success'`,
+    )
+    .all(...params)
+    .map((row) => row.node_id);
+}
+
 function appendUninstallStep(deploymentId, componentId) {
   const existing = getSteps(deploymentId);
   const nextSeq = existing.length ? Math.max(...existing.map((s) => s.seq)) + 1 : 1;
@@ -250,6 +296,9 @@ function appendUninstallStep(deploymentId, componentId) {
 // everything referencing it once teardown finishes.
 const deleteDeployment = db.transaction((id) => {
   db.prepare('DELETE FROM deployment_components WHERE deployment_id = ?').run(id);
+  db.prepare(
+    'DELETE FROM deployment_node_components WHERE node_id IN (SELECT id FROM deployment_nodes WHERE deployment_id = ?)',
+  ).run(id);
   db.prepare('DELETE FROM steps WHERE deployment_id = ?').run(id);
   db.prepare('DELETE FROM deployment_nodes WHERE deployment_id = ?').run(id);
   db.prepare('DELETE FROM deployments WHERE id = ?').run(id);
@@ -288,6 +337,10 @@ module.exports = {
   seedDeploymentComponentsFromRole,
   addDeploymentComponent,
   removeDeploymentComponent,
+  setNodeComponentStatus,
+  getNodeComponentStatuses,
+  removeNodeComponentForDeployment,
+  getNonSuccessNodeIds,
   deleteDeployment,
   appendUninstallStep,
 };

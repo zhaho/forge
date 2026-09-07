@@ -26,6 +26,12 @@ function readStepLogs(steps) {
 // Most recent ansible_run step that would have touched this component - either
 // one specifically targeting it (params.componentId) or a bulk run (no params,
 // covers every component installed at that time). Steps must be seq-ascending.
+// Express (extended: false) gives a string for one checked checkbox, an array
+// for several, or undefined for none - normalize to an array of node ids.
+function parseNodeIds(body) {
+  return [].concat(body.nodeIds || []).map(Number).filter((id) => Number.isInteger(id) && id > 0);
+}
+
 function getComponentInstallStatus(steps, componentId) {
   for (let i = steps.length - 1; i >= 0; i -= 1) {
     const step = steps[i];
@@ -157,7 +163,10 @@ router.post('/deployments/:id/reinstall', requireAuth, (req, res) => {
     return res.status(400).send(`Deployment is currently '${deployment.status}' and cannot be reinstalled right now.`);
   }
 
-  repo.appendReinstallSteps(deployment.id, null);
+  // Nothing checked - retry just the nodes that aren't currently successful
+  // (any component), instead of silently reapplying to every node.
+  const nodeIds = parseNodeIds(req.body).length ? parseNodeIds(req.body) : repo.getNonSuccessNodeIds(deployment.id);
+  repo.appendReinstallSteps(deployment.id, null, nodeIds);
   repo.updateDeploymentStatus(deployment.id, 'queued');
   queue.add(() => pipeline.runDeployment(deployment.id));
 
@@ -171,7 +180,12 @@ router.post('/deployments/:id/reinstall/:componentId', requireAuth, (req, res) =
     return res.status(400).send(`Deployment is currently '${deployment.status}' and cannot be reinstalled right now.`);
   }
 
-  repo.appendReinstallSteps(deployment.id, Number(req.params.componentId));
+  const componentId = Number(req.params.componentId);
+  // Nothing checked - retry just the nodes that aren't currently successful for
+  // this component, instead of silently reapplying to every node in the deployment.
+  const checked = parseNodeIds(req.body);
+  const nodeIds = checked.length ? checked : repo.getNonSuccessNodeIds(deployment.id, componentId);
+  repo.appendReinstallSteps(deployment.id, componentId, nodeIds);
   repo.updateDeploymentStatus(deployment.id, 'queued');
   queue.add(() => pipeline.runDeployment(deployment.id));
 
@@ -187,7 +201,7 @@ router.post('/deployments/:id/components/:componentId/install', requireAuth, (re
 
   const componentId = Number(req.params.componentId);
   repo.addDeploymentComponent(deployment.id, componentId);
-  repo.appendReinstallSteps(deployment.id, componentId);
+  repo.appendReinstallSteps(deployment.id, componentId, parseNodeIds(req.body));
   repo.updateDeploymentStatus(deployment.id, 'queued');
   queue.add(() => pipeline.runDeployment(deployment.id));
 
@@ -214,13 +228,20 @@ router.get('/deployments/:id', requireAuth, (req, res) => {
 
   const steps = repo.getSteps(deployment.id);
   const role = repo.getRoleById(deployment.role_id);
-  const installedComponents = (role.playbook_path ? [] : repo.getDeploymentComponents(deployment.id)).map(
-    (component) => ({ ...component, installStatus: getComponentInstallStatus(steps, component.id) }),
-  );
+  // nodeComponentStatus[nodeId][componentId] = status - drives the node x component
+  // overview grid, so it's easy to see everything on a node (or a component across nodes).
+  const nodeComponentStatus = {};
+  repo.getNodeComponentStatuses(deployment.id).forEach((row) => {
+    if (!nodeComponentStatus[row.node_id]) nodeComponentStatus[row.node_id] = {};
+    nodeComponentStatus[row.node_id][row.component_id] = row.status;
+  });
+
+  const installedComponents = repo.getDeploymentComponents(deployment.id).map((component) => ({
+    ...component,
+    installStatus: getComponentInstallStatus(steps, component.id),
+  }));
   const installedIds = new Set(installedComponents.map((c) => c.id));
-  const availableComponents = role.playbook_path
-    ? []
-    : repo.listComponents().filter((c) => !installedIds.has(c.id));
+  const availableComponents = repo.listComponents().filter((c) => !installedIds.has(c.id));
 
   const timing = repo.getInitialRunTiming(deployment.id);
   // More steps than the original run means the current activity is a
@@ -238,6 +259,7 @@ router.get('/deployments/:id', requireAuth, (req, res) => {
     role,
     installedComponents,
     availableComponents,
+    nodeComponentStatus,
     isFollowUpRun,
     nodes: repo.getNodes(deployment.id),
     steps,

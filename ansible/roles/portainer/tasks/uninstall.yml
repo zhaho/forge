@@ -1,0 +1,10 @@
+---
+- name: "portainer | remove the portainer container"
+  community.docker.docker_container:
+    name: portainer
+    state: absent
+
+- name: "portainer | remove the portainer data volume"
+  community.docker.docker_volume:
+    name: portainer_data
+    state: absent

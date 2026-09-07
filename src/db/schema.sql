@@ -108,6 +108,15 @@ CREATE TABLE IF NOT EXISTS deployment_components (
   PRIMARY KEY (deployment_id, component_id)
 );
 
+-- Per-node install status for a component, so a rollout can be targeted at
+-- (and tracked per) a subset of a deployment's nodes rather than all of them.
+CREATE TABLE IF NOT EXISTS deployment_node_components (
+  node_id      INTEGER NOT NULL REFERENCES deployment_nodes(id) ON DELETE CASCADE,
+  component_id INTEGER NOT NULL REFERENCES components(id) ON DELETE CASCADE,
+  status       TEXT NOT NULL DEFAULT 'pending',
+  PRIMARY KEY (node_id, component_id)
+);
+
 INSERT OR IGNORE INTO roles (key, label, playbook_path, supports_sub_roles) VALUES
   ('lab', 'Lab server', '', 0),
   ('mgmt', 'Management', '', 0),
@@ -123,7 +132,9 @@ INSERT OR IGNORE INTO components (key, label, description, ansible_role) VALUES
   ('btop', 'btop', 'Installs the btop system monitor.', 'btop'),
   ('telegraf', 'Telegraf', 'Installs and starts the Telegraf metrics agent.', 'telegraf'),
   ('docker', 'Docker', 'Installs Docker Engine, CLI and the Docker Compose plugin.', 'docker'),
-  ('autopatch', 'Ubuntu Auto Patch', 'Installs unattended-upgrades and enables nightly automatic security patching.', 'autopatch');
+  ('autopatch', 'Ubuntu Auto Patch', 'Installs unattended-upgrades and enables nightly automatic security patching.', 'autopatch'),
+  ('k9s', 'k9s', 'Installs k9s, a terminal UI for managing Kubernetes clusters.', 'k9s'),
+  ('portainer', 'Portainer', 'Runs Portainer CE as a Docker container (installs Docker first if needed).', 'portainer');
 
 INSERT OR IGNORE INTO role_components (role_id, component_id)
   SELECT r.id, c.id FROM roles r, components c WHERE r.key IN ('lab', 'mgmt') AND c.key = 'oh-my-zsh';

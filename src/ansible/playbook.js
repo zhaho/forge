@@ -3,12 +3,14 @@ const path = require('path');
 const config = require('../config');
 const repo = require('../db/deployments');
 
-// Roles with a dedicated playbook (e.g. k3s-cluster) use it directly.
-// Everything else is component-based: generate a playbook from the role's
-// checked components on the fly - or, if onlyComponentId is given, from just
-// that one component (used to reinstall a single failing package).
+// Roles with a dedicated playbook (e.g. k3s-cluster) use it directly for their
+// main bulk run. Components are always allowed on top of a dedicated playbook
+// though: generate a playbook from the role's checked components on the fly -
+// or, if onlyComponentId is given, from just that one component (used to
+// install/reinstall a single component, on the whole deployment or a subset
+// of its nodes via ansible-playbook's --limit).
 function resolvePlaybook(deployment, role, onlyComponentId) {
-  if (role.playbook_path) {
+  if (role.playbook_path && !onlyComponentId) {
     return path.join(config.ansiblePlaybooksDir, role.playbook_path);
   }
 

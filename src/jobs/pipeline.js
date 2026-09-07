@@ -281,31 +281,60 @@ async function runAnsible(deployment, step, logPath) {
   const inventoryPath = inventory.generateInventory(deployment, nodes, role);
 
   let componentId = null;
+  let nodeIds = null;
   if (step.params) {
     try {
-      componentId = JSON.parse(step.params).componentId || null;
+      const parsed = JSON.parse(step.params);
+      componentId = parsed.componentId || null;
+      nodeIds = Array.isArray(parsed.nodeIds) && parsed.nodeIds.length ? parsed.nodeIds : null;
     } catch (err) {
-      // Malformed/legacy params - fall back to the role's full component list.
+      // Malformed/legacy params - fall back to the role's full component list on every node.
     }
   }
 
+  // Targets whose deployment_node_components status gets updated around this run -
+  // either the single component being (re)installed or every component currently
+  // tracked for the deployment (a bulk run), on either the selected nodes or all of them.
+  const targetNodes = nodeIds ? nodes.filter((node) => nodeIds.includes(node.id)) : nodes;
+  const targetComponents = componentId
+    ? [repo.getComponentById(componentId)].filter(Boolean)
+    : repo.getDeploymentComponents(deployment.id);
+
   if (componentId) {
     const component = repo.getComponentById(componentId);
-    const line = `Reinstalling just the '${component ? component.label : componentId}' component`;
+    const suffix = nodeIds ? ` on ${targetNodes.map((node) => node.name).join(', ')}` : '';
+    const line = `Reinstalling just the '${component ? component.label : componentId}' component${suffix}`;
+    appendLog(logPath, line);
+    emit(deployment.id, { type: 'log', step: step.name, line });
+  } else if (nodeIds) {
+    const line = `Running against ${targetNodes.map((node) => node.name).join(', ')} only`;
     appendLog(logPath, line);
     emit(deployment.id, { type: 'log', step: step.name, line });
   }
 
   const playbookPath = playbookModule.resolvePlaybook(deployment, role, componentId);
 
-  await runCommand(
-    'ansible-playbook',
-    ['-i', inventoryPath, playbookPath],
-    deployment.workdir_path,
-    ansibleEnv(),
-    logPath,
-    (line) => emit(deployment.id, { type: 'log', step: step.name, line }),
-  );
+  const args = ['-i', inventoryPath, playbookPath];
+  if (nodeIds) args.push('--limit', targetNodes.map((node) => node.name).join(','));
+
+  targetComponents.forEach((component) => {
+    targetNodes.forEach((node) => repo.setNodeComponentStatus(node.id, component.id, 'running'));
+  });
+
+  try {
+    await runCommand('ansible-playbook', args, deployment.workdir_path, ansibleEnv(), logPath, (line) =>
+      emit(deployment.id, { type: 'log', step: step.name, line }),
+    );
+  } catch (err) {
+    targetComponents.forEach((component) => {
+      targetNodes.forEach((node) => repo.setNodeComponentStatus(node.id, component.id, 'failed'));
+    });
+    throw err;
+  }
+
+  targetComponents.forEach((component) => {
+    targetNodes.forEach((node) => repo.setNodeComponentStatus(node.id, component.id, 'success'));
+  });
 }
 
 async function runAnsibleUninstall(deployment, step, logPath) {
@@ -340,6 +369,7 @@ async function runAnsibleUninstall(deployment, step, logPath) {
   );
 
   repo.removeDeploymentComponent(deployment.id, componentId);
+  repo.removeNodeComponentForDeployment(deployment.id, componentId);
 }
 
 async function runVerify(deployment, step, logPath) {
