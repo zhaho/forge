@@ -11,6 +11,12 @@ const { getEmitter } = require('./events');
 
 const MAX_SSH_ATTEMPTS = 30;
 const SSH_RETRY_DELAY_MS = 10000;
+// Some node/image combos occasionally clone with a stuck netplan/cloud-init
+// network config on first boot (seen with concurrent multi-node clones from
+// the same template); a Proxmox-side reboot after a few failed attempts kicks
+// it loose, mirroring what the old ansible-proxmox-deploy pipeline did for
+// every VM unconditionally.
+const REBOOT_AFTER_ATTEMPTS = 5;
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -175,6 +181,59 @@ async function forgetStaleHostKey(deployment, node, logPath, stepName) {
   }
 }
 
+function proxmoxHostSshArgs() {
+  return [
+    '-o',
+    'BatchMode=yes',
+    '-o',
+    'ConnectTimeout=8',
+    '-o',
+    'StrictHostKeyChecking=accept-new',
+    '-o',
+    `UserKnownHostsFile=${config.ssh.knownHostsPath}`,
+    '-i',
+    config.ssh.privateKeyPath,
+    `${config.proxmox.sshUser}@${config.proxmox.sshHost}`,
+  ];
+}
+
+// Looks up node.name's VMID via the Proxmox host and issues a reboot, to kick
+// loose a stuck first-boot network config. Best-effort: returns false (never
+// throws) so a lookup/reboot failure doesn't derail the SSH retry loop itself.
+async function rebootNodeOnProxmox(deployment, node, logPath, stepName) {
+  if (!config.proxmox.sshHost) return false;
+  try {
+    const lines = [];
+    await runCommand(
+      'ssh',
+      [...proxmoxHostSshArgs(), 'pvesh get /cluster/resources --type vm --output-format json'],
+      deployment.workdir_path,
+      {},
+      logPath,
+      (l) => lines.push(l),
+    );
+    const vm = JSON.parse(lines.join('\n')).find((v) => v.name === node.name);
+    if (!vm) return false;
+
+    const line = `${node.name} still unreachable after ${REBOOT_AFTER_ATTEMPTS} attempts - rebooting VM ${vm.vmid} on Proxmox to clear a stuck network config...`;
+    appendLog(logPath, line);
+    emit(deployment.id, { type: 'log', step: stepName, line });
+
+    await runCommand(
+      'ssh',
+      [...proxmoxHostSshArgs(), `qm reboot ${vm.vmid}`],
+      deployment.workdir_path,
+      {},
+      logPath,
+      (l) => emit(deployment.id, { type: 'log', step: stepName, line: l }),
+    );
+    return true;
+  } catch (err) {
+    appendLog(logPath, `Could not reboot ${node.name} via Proxmox: ${err.message}`);
+    return false;
+  }
+}
+
 async function runWaitCloudInit(deployment, step, logPath) {
   fs.mkdirSync(path.dirname(config.ssh.knownHostsPath), { recursive: true });
   const nodes = repo.getNodes(deployment.id);
@@ -187,6 +246,7 @@ async function runWaitCloudInit(deployment, step, logPath) {
     await forgetStaleHostKey(deployment, node, logPath, step.name);
 
     let lastErr;
+    let rebooted = false;
     for (let attempt = 1; attempt <= MAX_SSH_ATTEMPTS; attempt += 1) {
       try {
         await runCommand('ssh', sshArgs(node), deployment.workdir_path, {}, logPath, (l) =>
@@ -196,6 +256,9 @@ async function runWaitCloudInit(deployment, step, logPath) {
         break;
       } catch (err) {
         lastErr = err;
+        if (!rebooted && attempt === REBOOT_AFTER_ATTEMPTS) {
+          rebooted = await rebootNodeOnProxmox(deployment, node, logPath, step.name);
+        }
         if (attempt < MAX_SSH_ATTEMPTS) await sleep(SSH_RETRY_DELAY_MS);
       }
     }
